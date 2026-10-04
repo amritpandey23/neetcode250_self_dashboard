@@ -3,10 +3,21 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 
 from app import db
+from app.gemini import GeminiError, chat as gemini_chat
 from app.models import Problem, Progress
 from app.schema import AGING_MAX_SOLVES, AGING_WEEKS
 
@@ -596,6 +607,7 @@ def problem_detail(slug):
         .first()
     )
 
+    gemini_configured = bool(current_app.config.get("GEMINI_API_KEY"))
     return render_template(
         "problem_detail.html",
         problem=problem,
@@ -609,7 +621,36 @@ def problem_detail(slug):
         next_problem=next_problem,
         aging_weeks=AGING_WEEKS,
         aging_max_solves=AGING_MAX_SOLVES,
+        gemini_configured=gemini_configured,
+        gemini_model=current_app.config.get("GEMINI_MODEL", "gemini-2.5-flash"),
     )
+
+
+@main_bp.route("/problem/<slug>/chat", methods=["POST"])
+@login_required
+def problem_chat(slug):
+    problem = Problem.query.filter_by(slug=slug).first_or_404()
+    payload = request.get_json(silent=True) or {}
+    message = payload.get("message", "")
+    history = payload.get("history") or []
+    context = payload.get("context") or {}
+
+    try:
+        answer = gemini_chat(
+            api_key=current_app.config.get("GEMINI_API_KEY", ""),
+            model=current_app.config.get("GEMINI_MODEL", "gemini-2.5-flash"),
+            problem=problem,
+            message=message,
+            history=history,
+            context=context,
+        )
+    except GeminiError as exc:
+        return jsonify({"error": str(exc)}), exc.status_code
+    except Exception:
+        current_app.logger.exception("Unexpected Gemini chat failure")
+        return jsonify({"error": "Unexpected AI error."}), 500
+
+    return jsonify({"reply": answer})
 
 
 @main_bp.route("/problem/<slug>/bookmark", methods=["POST"])

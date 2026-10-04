@@ -9,6 +9,7 @@
 
 {% block content %}
 {% set current_status = progress.status if progress else 'todo' %}
+<div class="problem-shell" id="problem-shell">
 <article class="problem-workspace">
   <a class="back-link" href="{{ back_href }}">
     {{ icon('arrow-left') }}
@@ -72,7 +73,7 @@
       <div class="notes-field-head">
         <div>
           <p class="section-label" id="notes-label">Notes</p>
-          <p class="notes-hint muted">Markdown · LaTeX · fenced code highlighting</p>
+          <p class="notes-hint muted">Your workspace · Markdown · LaTeX · code · available to AI Coach</p>
         </div>
         <button type="button" class="btn btn-ghost btn-icon" id="notes-edit-toggle">
           {{ icon('pen-line') }}<span>Edit notes</span>
@@ -139,7 +140,7 @@
         <div class="save-state muted" id="save-state">
           {% if progress and progress.updated_at %}
           {{ icon('check') }}
-          <span>Last saved {{ progress.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC</span>
+          <span>Saved</span>
           {% else %}
           <span>Not saved yet</span>
           {% endif %}
@@ -196,6 +197,109 @@
     {% endif %}
   </nav>
 </article>
+
+<aside
+  class="ai-chat"
+  id="ai-chat"
+  data-slug="{{ problem.slug }}"
+  data-problem-name="{{ problem.name }}"
+  data-chat-url="{{ url_for('main.problem_chat', slug=problem.slug) }}"
+  data-enabled="{{ '1' if gemini_configured else '0' }}"
+  data-model="{{ gemini_model }}"
+  data-bookmarked="{{ '1' if progress and progress.bookmarked else '0' }}"
+  data-solve-count="{{ progress.solve_count if progress else 0 }}"
+  data-last-practiced="{{ progress.last_practiced_at.strftime('%Y-%m-%d') if progress and progress.last_practiced_at else '' }}"
+  aria-label="AI Coach"
+>
+  <header class="ai-chat-header">
+    <div class="ai-chat-title">
+      <span class="ai-chat-mark" aria-hidden="true">{{ icon('sparkles') }}</span>
+      <div class="ai-chat-heading">
+        <strong>AI Coach</strong>
+        <p class="ai-chat-context">{{ problem.name }}</p>
+        <p class="ai-chat-meta muted">Uses current problem, status, and notes · <span class="ai-chat-model">{{ gemini_model }}</span></p>
+      </div>
+    </div>
+    <div class="ai-chat-header-actions">
+      <button
+        type="button"
+        class="md-btn"
+        id="ai-chat-clear"
+        title="Clear conversation"
+        aria-label="Clear conversation"
+        {% if not gemini_configured %}disabled{% endif %}
+      >
+        {{ icon('trash-2') }}
+      </button>
+      <button
+        type="button"
+        class="md-btn"
+        id="ai-chat-collapse"
+        title="Collapse AI Coach"
+        aria-label="Collapse AI Coach"
+        aria-controls="ai-chat"
+      >
+        {{ icon('chevrons-right') }}
+      </button>
+    </div>
+  </header>
+
+  <div class="ai-chat-messages" id="ai-chat-messages" aria-live="polite"></div>
+
+  {% if gemini_configured %}
+  <div class="ai-chat-suggestions" id="ai-chat-suggestions" aria-label="Quick coaching actions">
+    <button type="button" class="ai-chip ai-chip-primary" data-prompt="Give me a gentle hint for this problem without revealing the full solution.">Gentle hint</button>
+    <button type="button" class="ai-chip" data-prompt="Review my notes for this problem. Point out gaps, edge cases, and complexity issues.">Review notes</button>
+    <button type="button" class="ai-chip" data-prompt="Suggest a clean approach and outline the algorithm in steps. Keep code brief.">Approach</button>
+    <button type="button" class="ai-chip" data-prompt="Give me 3 interview follow-up questions related to this problem.">Follow-ups</button>
+  </div>
+  {% endif %}
+
+  <form class="ai-chat-composer" id="ai-chat-form">
+    <label class="sr-only" for="ai-chat-input">Ask the AI coach</label>
+    <textarea
+      id="ai-chat-input"
+      rows="1"
+      placeholder="{% if gemini_configured %}Ask about this problem…{% else %}Configure GEMINI_API_KEY to chat{% endif %}"
+      {% if not gemini_configured %}disabled{% endif %}
+    ></textarea>
+    <button
+      class="btn btn-primary btn-icon ai-chat-send"
+      type="submit"
+      id="ai-chat-send"
+      aria-label="Send message"
+      {% if not gemini_configured %}disabled{% endif %}
+    >
+      {{ icon('arrow-up') }}
+      <span class="sr-only">Send</span>
+    </button>
+  </form>
+</aside>
+
+<button
+  type="button"
+  class="ai-chat-rail"
+  id="ai-chat-expand"
+  aria-controls="ai-chat"
+  aria-expanded="false"
+  aria-label="Open AI Coach"
+>
+  {{ icon('sparkles') }}
+  <span>AI</span>
+</button>
+
+<button
+  type="button"
+  class="ai-chat-fab"
+  id="ai-chat-fab"
+  aria-controls="ai-chat"
+  aria-expanded="false"
+  aria-label="Open AI Coach"
+>
+  {{ icon('sparkles') }}
+  <span>AI Coach</span>
+</button>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -205,4 +309,5 @@
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
 <script src="{{ url_for('static', filename='js/notes-editor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/problem-detail.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ai-chat.js') }}"></script>
 {% endblock %}

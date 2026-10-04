@@ -27,7 +27,7 @@
     </button>
     <nav class="site-nav" id="site-nav">
       <a class="nav-link {% if endpoint == 'main.dashboard' %}is-active{% endif %}" href="{{ url_for('main.dashboard') }}">{{ icon('layout-dashboard') }}<span>Dashboard</span></a>
-      <a class="nav-link {% if endpoint == 'main.problems' %}is-active{% endif %}" href="{{ url_for('main.problems') }}">{{ icon('list') }}<span>Problems</span></a>
+      <a class="nav-link {% if endpoint in ['main.problems', 'main.problem_detail'] %}is-active{% endif %}" href="{{ url_for('main.problems') }}">{{ icon('list') }}<span>Problems</span></a>
       <a class="nav-link {% if endpoint == 'main.roadmap' %}is-active{% endif %}" href="{{ url_for('main.roadmap') }}">{{ icon('route') }}<span>Roadmap</span></a>
       <a class="nav-link {% if endpoint == 'main.contests' %}is-active{% endif %}" href="{{ url_for('main.contests') }}">{{ icon('trophy') }}<span>Contests</span></a>
       <a class="nav-link {% if endpoint == 'main.aging' %}is-active{% endif %}" href="{{ url_for('main.aging') }}">{{ icon('hourglass') }}<span>Aging</span></a>

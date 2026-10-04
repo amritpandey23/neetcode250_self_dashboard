@@ -17,6 +17,8 @@ Personal Flask dashboard to track NeetCode 250 progress, status, and notes. Data
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env   # if you don't already have .env
+# edit .env and set GEMINI_API_KEY for AI chat
 python run.py
 ```
 
@@ -42,3 +44,20 @@ neetcode_250_complete.json
 SQLite DB path: `instance/neetcode.db`
 
 Set `SECRET_KEY` in the environment before deploying anywhere beyond local use.
+
+## AI coach (Gemini)
+
+Each problem page has a right-side AI chat that uses your live status and notes as context.
+
+Locally, set values in `.env` (loaded automatically via `python-dotenv`):
+
+```bash
+GEMINI_API_KEY=your-key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+On EC2, add those to `/etc/neetcode250/env` and restart:
+
+```bash
+sudo systemctl restart neetcode250
+```
