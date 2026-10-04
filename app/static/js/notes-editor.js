@@ -21,7 +21,7 @@
   const CODEISH = /(```[\s\S]*?```|`[^`\n]+`)/g;
 
   function escapeHtml(text) {
-    return text
+    return String(text ?? "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -71,29 +71,63 @@
     return html.replace(/@@MATH(\d+)@@/g, (_, index) => slots[Number(index)] || "");
   }
 
-  function highlightCodeBlocks() {
-    if (typeof hljs === "undefined") return;
-    preview.querySelectorAll("pre code").forEach((block) => {
-      if (block.dataset.highlighted === "yes") {
-        delete block.dataset.highlighted;
-        block.classList.remove("hljs");
+  function highlightSource(code, lang) {
+    const source = String(code ?? "");
+    if (typeof hljs === "undefined") return escapeHtml(source);
+    const language = String(lang || "")
+      .trim()
+      .split(/\s+/)[0];
+    try {
+      if (language && hljs.getLanguage(language)) {
+        return hljs.highlight(source, { language }).value;
       }
-      hljs.highlightElement(block);
-    });
+      return hljs.highlightAuto(source).value;
+    } catch (_err) {
+      return escapeHtml(source);
+    }
   }
 
+  function renderCodeBlock(code, lang) {
+    const language = String(lang || "")
+      .trim()
+      .split(/\s+/)[0];
+    const highlighted = highlightSource(code, language);
+    const className = language
+      ? `hljs language-${escapeHtml(language)}`
+      : "hljs";
+    return `<pre><code class="${className}">${highlighted}</code></pre>\n`;
+  }
+
+  // marked@13 browser build still calls code(code, infostring, escaped)
+  // while newer builds may pass a token object — support both.
+  marked.use({
+    renderer: {
+      code(codeOrToken, infostring) {
+        if (codeOrToken && typeof codeOrToken === "object") {
+          return renderCodeBlock(codeOrToken.text, codeOrToken.lang);
+        }
+        return renderCodeBlock(codeOrToken, infostring);
+      },
+    },
+  });
+
   function renderMarkdown(source) {
-    if (!source.trim()) {
-      preview.innerHTML = EMPTY_PREVIEW;
-      return;
+    try {
+      if (!source.trim()) {
+        preview.innerHTML = EMPTY_PREVIEW;
+        return;
+      }
+      const { text, slots } = protectMath(source);
+      const rawHtml = marked.parse(text);
+      const clean = DOMPurify.sanitize(rawHtml, {
+        ADD_TAGS: ["span"],
+        ADD_ATTR: ["class"],
+      });
+      preview.innerHTML = restoreMath(clean, slots);
+    } catch (err) {
+      console.error("Notes preview failed:", err);
+      preview.innerHTML = `<pre class="md-preview-fallback">${escapeHtml(source)}</pre>`;
     }
-    const { text, slots } = protectMath(source);
-    const rawHtml = marked.parse(text);
-    const clean = DOMPurify.sanitize(rawHtml, {
-      ADD_ATTR: ["class"],
-    });
-    preview.innerHTML = restoreMath(clean, slots);
-    highlightCodeBlocks();
   }
 
   function wrapSelection(before, after = before, placeholder = "text") {

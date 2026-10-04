@@ -1802,12 +1802,24 @@ textarea:focus {
 .markdown-body pre code.hljs {
   display: block;
   background: transparent;
-  color: inherit;
   padding: 0.85rem 0.95rem;
   overflow-x: auto;
   font-size: 0.86em;
   line-height: 1.55;
 }
+/* Keep token colors even if the theme stylesheet is slow/blocked */
+.markdown-body pre code .hljs-keyword,
+.markdown-body pre code .hljs-selector-tag,
+.markdown-body pre code .hljs-title.function_ { color: #ff7b72; }
+.markdown-body pre code .hljs-string,
+.markdown-body pre code .hljs-attr { color: #a5d6ff; }
+.markdown-body pre code .hljs-number,
+.markdown-body pre code .hljs-literal { color: #79c0ff; }
+.markdown-body pre code .hljs-comment { color: #8b949e; font-style: italic; }
+.markdown-body pre code .hljs-built_in,
+.markdown-body pre code .hljs-type { color: #ffa657; }
+.markdown-body pre code .hljs-title,
+.markdown-body pre code .hljs-title.class_ { color: #d2a8ff; }
 .markdown-body table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 .markdown-body th,
 .markdown-body td { border: 1px solid var(--line); padding: 0.4rem 0.55rem; }
