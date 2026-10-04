@@ -12,7 +12,7 @@
   const EMPTY_PREVIEW = `
     <div class="md-empty-state">
       <p>Write your approach, observations, edge cases, or solution notes here.</p>
-      <p class="muted">Markdown and LaTeX supported.</p>
+      <p class="muted">Markdown, LaTeX, and fenced code (\`\`\`java / \`\`\`python) supported.</p>
     </div>
   `;
 
@@ -71,6 +71,17 @@
     return html.replace(/@@MATH(\d+)@@/g, (_, index) => slots[Number(index)] || "");
   }
 
+  function highlightCodeBlocks() {
+    if (typeof hljs === "undefined") return;
+    preview.querySelectorAll("pre code").forEach((block) => {
+      if (block.dataset.highlighted === "yes") {
+        delete block.dataset.highlighted;
+        block.classList.remove("hljs");
+      }
+      hljs.highlightElement(block);
+    });
+  }
+
   function renderMarkdown(source) {
     if (!source.trim()) {
       preview.innerHTML = EMPTY_PREVIEW;
@@ -78,8 +89,11 @@
     }
     const { text, slots } = protectMath(source);
     const rawHtml = marked.parse(text);
-    const clean = DOMPurify.sanitize(rawHtml);
+    const clean = DOMPurify.sanitize(rawHtml, {
+      ADD_ATTR: ["class"],
+    });
     preview.innerHTML = restoreMath(clean, slots);
+    highlightCodeBlocks();
   }
 
   function wrapSelection(before, after = before, placeholder = "text") {
@@ -126,7 +140,7 @@
     ol: () => prefixLines("1. "),
     quote: () => prefixLines("> "),
     code: () => wrapSelection("`", "`", "code"),
-    codeblock: () => wrapSelection("```\n", "\n```", "code"),
+    codeblock: () => wrapSelection("```python\n", "\n```", "code"),
     link: () => wrapSelection("[", "](https://)", "label"),
     table: () =>
       wrapSelection(
