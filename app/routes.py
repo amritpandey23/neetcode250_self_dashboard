@@ -100,6 +100,19 @@ def _safe_next_url(candidate, fallback=None):
     return candidate
 
 
+def _normalize_leetcode_url(raw):
+    """Return a cleaned http(s) URL, or None if invalid/empty."""
+    url = (raw or "").strip()
+    if not url:
+        return None
+    if not url.startswith(("http://", "https://")):
+        return None
+    parsed = urlparse(url)
+    if not parsed.netloc:
+        return None
+    return url
+
+
 def _problems_return_url():
     args = {}
     for key in ("category", "difficulty", "status", "q"):
@@ -515,22 +528,18 @@ def add_problem():
     name = (request.form.get("name") or "").strip()
     category = (request.form.get("category") or "").strip()
     difficulty = (request.form.get("difficulty") or "").strip()
-    leetcode_url = (request.form.get("leetcode_url") or "").strip()
+    leetcode_url = _normalize_leetcode_url(request.form.get("leetcode_url"))
     next_url = _safe_next_url(
         request.form.get("next"),
         url_for("main.problems", category=category) if category else url_for("main.problems"),
     )
 
     if not name or not category or not leetcode_url:
-        flash("Name, category, and LeetCode URL are required.", "error")
+        flash("Name, category, and a valid LeetCode URL are required.", "error")
         return redirect(next_url)
 
     if difficulty not in ("Easy", "Medium", "Hard"):
         flash("Choose a valid difficulty.", "error")
-        return redirect(next_url)
-
-    if not leetcode_url.startswith(("http://", "https://")):
-        flash("LeetCode URL must start with http:// or https://.", "error")
         return redirect(next_url)
 
     max_order = db.session.query(db.func.max(Problem.order_index)).scalar()
@@ -802,6 +811,29 @@ def toggle_bookmark(slug):
     flash(f"{label}: {problem.name}.", "success")
 
     next_url = _safe_next_url(request.form.get("next"), url_for("main.bookmarks"))
+    return redirect(next_url)
+
+
+@main_bp.route("/problem/<slug>/leetcode-url", methods=["POST"])
+@login_required
+def update_leetcode_url(slug):
+    problem = Problem.query.filter_by(slug=slug).first_or_404()
+    next_url = _safe_next_url(
+        request.form.get("next"),
+        url_for("main.problem_detail", slug=slug),
+    )
+    leetcode_url = _normalize_leetcode_url(request.form.get("leetcode_url"))
+    if not leetcode_url:
+        flash("Enter a valid URL starting with http:// or https://.", "error")
+        return redirect(next_url)
+
+    if leetcode_url == (problem.leetcode_url or "").strip():
+        flash("LeetCode link unchanged.", "info")
+        return redirect(next_url)
+
+    problem.leetcode_url = leetcode_url
+    db.session.commit()
+    flash("LeetCode link updated.", "success")
     return redirect(next_url)
 
 

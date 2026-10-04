@@ -43,6 +43,34 @@
     </div>
   </header>
 
+  <details class="leetcode-url-editor">
+    <summary class="leetcode-url-summary">
+      {{ icon('link') }}
+      <span>Edit LeetCode link</span>
+    </summary>
+    <form
+      class="leetcode-url-form"
+      method="post"
+      action="{{ url_for('main.update_leetcode_url', slug=problem.slug) }}"
+    >
+      <input type="hidden" name="next" value="{{ url_for('main.problem_detail', slug=problem.slug, next=back_url) }}">
+      <label class="sr-only" for="leetcode-url-input">LeetCode URL</label>
+      <input
+        type="url"
+        id="leetcode-url-input"
+        name="leetcode_url"
+        value="{{ problem.leetcode_url }}"
+        required
+        placeholder="https://leetcode.com/problems/..."
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <button class="btn btn-primary btn-icon" type="submit">
+        {{ icon('save') }}<span>Save link</span>
+      </button>
+    </form>
+  </details>
+
   <form class="problem-form" id="problem-form" method="post" action="{{ url_for('main.problem_detail', slug=problem.slug) }}">
     <input type="hidden" name="next" value="{{ back_url }}">
 

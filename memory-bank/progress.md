@@ -26,6 +26,7 @@
 - AI Coach chat on problem detail (Gemini)
 - Link Spaces entries to problems (`ProblemEntryLink` + problem page UI)
 - Dark/light theme toggle with tokenized CSS + chart/mermaid sync
+- Edit per-problem LeetCode URL on problem detail (seed won’t overwrite)
 
 ## Left / nice-to-have
 - Soft delete / account settings

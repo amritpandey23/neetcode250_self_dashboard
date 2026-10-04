@@ -26,7 +26,9 @@ def seed_problems():
             problem.difficulty = item["difficulty"]
             problem.category = item["category"]
             problem.neetcode_url = item["neetcode_url"]
-            problem.leetcode_url = item["leetcode_url"]
+            # Preserve leetcode_url — users can customize it per problem.
+            if not (problem.leetcode_url or "").strip():
+                problem.leetcode_url = item["leetcode_url"]
             problem.order_index = index
         else:
             db.session.add(
