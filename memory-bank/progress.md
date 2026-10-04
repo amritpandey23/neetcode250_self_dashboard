@@ -27,6 +27,8 @@
 - Link Spaces entries to problems (`ProblemEntryLink` + problem page UI)
 - Dark/light theme toggle with tokenized CSS + chart/mermaid sync
 - Edit per-problem LeetCode URL on problem detail (seed won’t overwrite)
+- Dashboard attempted + solved history (date descending)
+- Activity log panel on dashboard (status, practice, bookmarks, Spaces CRUD, links, etc.)
 
 ## Left / nice-to-have
 - Soft delete / account settings

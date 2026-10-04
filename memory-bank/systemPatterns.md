@@ -12,6 +12,7 @@
 - `Progress` — per-user status/notes (`unique user_id + problem_id`)
 - Spaces: `Space` → `DocCategory` → `DocSection?` → `DocEntry` (user-owned)
 - `ProblemEntryLink` — per-user problem↔entry links (`unique user_id + problem_id + entry_id`)
+- `ActivityLog` — per-user chronological action feed (`action`, `summary`, optional `href`)
 
 ## Critical paths
 1. Startup → create tables → seed problems from JSON

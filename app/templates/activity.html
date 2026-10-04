@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}Activity log · NeetCode 250{% endblock %}
+{% block content %}
+<section class="overview-page">
+  <a class="back-link" href="{{ url_for('main.dashboard') }}">
+    {{ icon('arrow-left') }}
+    <span>Back to Dashboard</span>
+  </a>
+  <section class="dash-hero">
+    <div>
+      <p class="section-label">History</p>
+      <h1>Activity log</h1>
+      <p class="lede">Core actions across the app · newest first{% if total %} · {{ total }} total{% endif %}</p>
+    </div>
+  </section>
+
+  <section class="activity-log-panel activity-log-page" aria-labelledby="activity-log-title">
+    <h2 class="sr-only" id="activity-log-title">All activity</h2>
+    {% if activity_feed %}
+    <div class="activity-log-list is-expanded">
+      {% for item in activity_feed %}
+      {% if item.href %}
+      <a class="activity-log-item" href="{{ item.href }}">
+      {% else %}
+      <div class="activity-log-item is-static">
+      {% endif %}
+        <span class="activity-log-icon" aria-hidden="true">{{ icon(activity_icon(item.action)) }}</span>
+        <div class="aging-preview-main">
+          <strong>{{ item.summary }}</strong>
+          <span class="muted">{{ item.action.replace('_', ' ') }}</span>
+        </div>
+        <time class="activity-date" datetime="{{ item.created_at.isoformat() }}">
+          {{ item.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </time>
+      {% if item.href %}
+      </a>
+      {% else %}
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if pages > 1 %}
+    <nav class="activity-pager" aria-label="Activity pages">
+      {% if page > 1 %}
+      <a class="btn btn-ghost btn-icon" href="{{ url_for('main.activity_log', page=page - 1) }}">
+        {{ icon('arrow-left') }}<span>Newer</span>
+      </a>
+      {% else %}
+      <span></span>
+      {% endif %}
+      <span class="muted">Page {{ page }} of {{ pages }}</span>
+      {% if page < pages %}
+      <a class="btn btn-ghost btn-icon" href="{{ url_for('main.activity_log', page=page + 1) }}">
+        <span>Older</span>{{ icon('arrow-right') }}
+      </a>
+      {% else %}
+      <span></span>
+      {% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <p class="activity-empty muted">No activity yet. Status changes, practice, bookmarks, and Spaces edits will show up here.</p>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

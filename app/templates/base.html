@@ -37,24 +37,48 @@
       <span class="brand-text">NeetCode 250</span>
     </a>
     {% if current_user.is_authenticated %}
+    {% set practice_active = endpoint in ['main.roadmap', 'main.aging', 'main.bookmarks', 'main.contests'] %}
     <nav class="site-nav" id="site-nav">
       <a class="nav-link {% if endpoint == 'main.dashboard' %}is-active{% endif %}" href="{{ url_for('main.dashboard') }}">{{ icon('layout-dashboard') }}<span>Dashboard</span></a>
       <a class="nav-link {% if endpoint in ['main.problems', 'main.problem_detail'] %}is-active{% endif %}" href="{{ url_for('main.problems') }}">{{ icon('list') }}<span>Problems</span></a>
+
+      <details class="nav-menu" data-nav-menu>
+        <summary class="nav-link nav-menu-trigger {% if practice_active %}is-active{% endif %}">
+          {{ icon('layers') }}<span>Practice</span>{{ icon('chevron-down', 'nav-chevron') }}
+        </summary>
+        <div class="nav-menu-panel" role="menu">
+          <a class="nav-menu-item {% if endpoint == 'main.roadmap' %}is-active{% endif %}" href="{{ url_for('main.roadmap') }}" role="menuitem">{{ icon('route') }}<span>Roadmap</span></a>
+          <a class="nav-menu-item {% if endpoint == 'main.aging' %}is-active{% endif %}" href="{{ url_for('main.aging') }}" role="menuitem">{{ icon('hourglass') }}<span>Aging</span></a>
+          <a class="nav-menu-item {% if endpoint == 'main.bookmarks' %}is-active{% endif %}" href="{{ url_for('main.bookmarks') }}" role="menuitem">{{ icon('bookmark') }}<span>Bookmarks</span></a>
+          <a class="nav-menu-item {% if endpoint == 'main.contests' %}is-active{% endif %}" href="{{ url_for('main.contests') }}" role="menuitem">{{ icon('trophy') }}<span>Contests</span></a>
+        </div>
+      </details>
+
       <a class="nav-link {% if endpoint and endpoint.startswith('docs.') %}is-active{% endif %}" href="{{ url_for('docs.index') }}">{{ icon('library') }}<span>Spaces</span></a>
-      <a class="nav-link {% if endpoint == 'main.roadmap' %}is-active{% endif %}" href="{{ url_for('main.roadmap') }}">{{ icon('route') }}<span>Roadmap</span></a>
-      <a class="nav-link {% if endpoint == 'main.contests' %}is-active{% endif %}" href="{{ url_for('main.contests') }}">{{ icon('trophy') }}<span>Contests</span></a>
-      <a class="nav-link {% if endpoint == 'main.aging' %}is-active{% endif %}" href="{{ url_for('main.aging') }}">{{ icon('hourglass') }}<span>Aging</span></a>
-      <a class="nav-link {% if endpoint == 'main.bookmarks' %}is-active{% endif %}" href="{{ url_for('main.bookmarks') }}">{{ icon('bookmark') }}<span>Bookmarks</span></a>
-      <span class="nav-user">{{ icon('user') }}<span>{{ current_user.username }}</span></span>
-      <a class="btn btn-ghost btn-icon" href="{{ url_for('auth.logout') }}">{{ icon('log-out') }}<span>Logout</span></a>
+
+      <button type="button" class="theme-toggle nav-theme-toggle" data-theme-toggle aria-label="Toggle color theme" aria-pressed="false">
+        <span class="theme-icon-moon" aria-hidden="true">{{ icon('moon') }}</span>
+        <span class="theme-icon-sun" aria-hidden="true">{{ icon('sun') }}</span>
+      </button>
+
+      <details class="nav-menu nav-menu-account" data-nav-menu>
+        <summary class="nav-link nav-menu-trigger">
+          {{ icon('user') }}<span class="nav-username">{{ current_user.username }}</span>{{ icon('chevron-down', 'nav-chevron') }}
+        </summary>
+        <div class="nav-menu-panel nav-menu-panel-end" role="menu">
+          <div class="nav-menu-meta">Signed in as <strong>{{ current_user.username }}</strong></div>
+          <a class="nav-menu-item" href="{{ url_for('auth.logout') }}" role="menuitem">{{ icon('log-out') }}<span>Logout</span></a>
+        </div>
+      </details>
     </nav>
     {% endif %}
     <div class="site-header-end">
+      {% if not current_user.is_authenticated %}
       <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle color theme" aria-pressed="false">
         <span class="theme-icon-moon" aria-hidden="true">{{ icon('moon') }}</span>
         <span class="theme-icon-sun" aria-hidden="true">{{ icon('sun') }}</span>
       </button>
-      {% if current_user.is_authenticated %}
+      {% else %}
       <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav">
         {{ icon('menu') }}
       </button>
@@ -101,8 +125,35 @@
         toggle.addEventListener("click", function () {
           var open = nav.classList.toggle("is-open");
           toggle.setAttribute("aria-expanded", open ? "true" : "false");
+          if (!open) {
+            nav.querySelectorAll("details[data-nav-menu][open]").forEach(function (el) {
+              el.removeAttribute("open");
+            });
+          }
         });
       }
+
+      var menus = document.querySelectorAll("details[data-nav-menu]");
+      menus.forEach(function (menu) {
+        menu.addEventListener("toggle", function () {
+          if (!menu.open) return;
+          menus.forEach(function (other) {
+            if (other !== menu) other.removeAttribute("open");
+          });
+        });
+      });
+      document.addEventListener("click", function (event) {
+        if (event.target.closest("details[data-nav-menu]")) return;
+        menus.forEach(function (menu) {
+          menu.removeAttribute("open");
+        });
+      });
+      document.addEventListener("keydown", function (event) {
+        if (event.key !== "Escape") return;
+        menus.forEach(function (menu) {
+          menu.removeAttribute("open");
+        });
+      });
     });
     document.addEventListener("themechange", function () {
       window.refreshIcons();

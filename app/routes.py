@@ -17,6 +17,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app import db
+from app.activity import activity_count, activity_icon, log_activity, recent_activity
 from app.gemini import GeminiError, chat as gemini_chat
 from app.models import DocCategory, DocEntry, Problem, ProblemEntryLink, Progress, Space
 from app.schema import AGING_MAX_SOLVES, AGING_WEEKS
@@ -309,6 +310,59 @@ def _aging_entries(user_id):
     return aging
 
 
+def _activity_stamp(entry, *, solved=False):
+    """Best available date for activity ordering/display."""
+    if solved:
+        return (
+            _aware(entry.completed_at)
+            or _aware(entry.last_practiced_at)
+            or _aware(entry.updated_at)
+        )
+    return _aware(entry.last_practiced_at) or _aware(entry.updated_at)
+
+
+def _activity_lists(user_id):
+    """Attempted + solved histories, newest first."""
+    entries = (
+        Progress.query.filter(
+            Progress.user_id == user_id,
+            Progress.status.in_(("attempted", "done")),
+        )
+        .join(Problem)
+        .all()
+    )
+
+    attempted = []
+    solved = []
+    for entry in entries:
+        if entry.status == "done":
+            stamp = _activity_stamp(entry, solved=True)
+            if stamp is None:
+                continue
+            solved.append(
+                {
+                    "entry": entry,
+                    "problem": entry.problem,
+                    "at": stamp,
+                }
+            )
+        elif entry.status == "attempted":
+            stamp = _activity_stamp(entry, solved=False)
+            if stamp is None:
+                continue
+            attempted.append(
+                {
+                    "entry": entry,
+                    "problem": entry.problem,
+                    "at": stamp,
+                }
+            )
+
+    attempted.sort(key=lambda item: item["at"], reverse=True)
+    solved.sort(key=lambda item: item["at"], reverse=True)
+    return attempted, solved
+
+
 @main_bp.route("/")
 def index():
     if current_user.is_authenticated:
@@ -329,6 +383,9 @@ def dashboard():
     stats = _stats(all_problems, progress_by_id)
     continue_learning = _continue_learning(all_problems, progress_by_id)
     aging_preview = _aging_entries(current_user.id)[:3]
+    attempted_recent, solved_history = _activity_lists(current_user.id)
+    activity_feed = recent_activity(current_user.id, limit=5)
+    activity_total = activity_count(current_user.id)
     from app.contests import get_upcoming_contests
 
     contest_preview = get_upcoming_contests(limit_per_kind=1)
@@ -339,10 +396,36 @@ def dashboard():
         stats=stats,
         continue_learning=continue_learning,
         aging_preview=aging_preview,
+        attempted_recent=attempted_recent,
+        solved_history=solved_history,
+        activity_feed=activity_feed,
+        activity_total=activity_total,
+        activity_icon=activity_icon,
         contest_preview=contest_preview,
         progress_timeline=progress_timeline,
         statuses=Progress.STATUSES,
         status_labels=Progress.STATUS_LABELS,
+    )
+
+
+@main_bp.route("/activity")
+@login_required
+def activity_log():
+    page = max(1, request.args.get("page", 1, type=int) or 1)
+    per_page = 50
+    total = activity_count(current_user.id)
+    pages = max(1, (total + per_page - 1) // per_page) if total else 1
+    page = min(page, pages)
+    offset = (page - 1) * per_page
+    items = recent_activity(current_user.id, limit=per_page, offset=offset)
+    return render_template(
+        "activity.html",
+        activity_feed=items,
+        activity_icon=activity_icon,
+        page=page,
+        pages=pages,
+        total=total,
+        per_page=per_page,
     )
 
 
@@ -553,6 +636,13 @@ def add_problem():
         order_index=(max_order or 0) + 1,
     )
     db.session.add(problem)
+    log_activity(
+        current_user.id,
+        "problem_added",
+        f"Added problem “{name}” to {category}",
+        entity_type="problem",
+        href=url_for("main.problem_detail", slug=problem.slug),
+    )
     db.session.commit()
     flash(f'Added "{name}" to {category}.', "success")
     return redirect(next_url)
@@ -659,10 +749,40 @@ def problem_detail(slug):
             db.session.add(progress)
 
         previous = progress.status
+        previous_notes = progress.notes or ""
         progress.status = new_status
         progress.notes = notes
         progress.updated_at = datetime.now(timezone.utc)
         _apply_practice(progress, new_status, previous, log_practice=log_practice)
+
+        detail_href = url_for("main.problem_detail", slug=slug)
+        if log_practice:
+            log_activity(
+                current_user.id,
+                "practice_logged",
+                f"Logged practice on {problem.name}",
+                entity_type="problem",
+                entity_id=problem.id,
+                href=detail_href,
+            )
+        if previous != new_status:
+            log_activity(
+                current_user.id,
+                "status_changed",
+                f"Marked {problem.name} as {Progress.STATUS_LABELS.get(new_status, new_status)}",
+                entity_type="problem",
+                entity_id=problem.id,
+                href=detail_href,
+            )
+        elif (notes or "") != previous_notes:
+            log_activity(
+                current_user.id,
+                "notes_updated",
+                f"Updated notes for {problem.name}",
+                entity_type="problem",
+                entity_id=problem.id,
+                href=detail_href,
+            )
 
         db.session.commit()
         if log_practice:
@@ -746,6 +866,14 @@ def link_problem_entry(slug):
             entry_id=entry.id,
         )
     )
+    log_activity(
+        current_user.id,
+        "entry_linked",
+        f"Linked “{entry.title}” to {problem.name}",
+        entity_type="problem",
+        entity_id=problem.id,
+        href=url_for("main.problem_detail", slug=slug),
+    )
     db.session.commit()
     flash(f"Linked “{entry.title}”.", "success")
     return redirect(next_url)
@@ -766,6 +894,14 @@ def unlink_problem_entry(slug, link_id):
     ).first_or_404()
     title = link.entry.title if link.entry else "entry"
     db.session.delete(link)
+    log_activity(
+        current_user.id,
+        "entry_unlinked",
+        f"Unlinked “{title}” from {problem.name}",
+        entity_type="problem",
+        entity_id=problem.id,
+        href=url_for("main.problem_detail", slug=slug),
+    )
     db.session.commit()
     flash(f"Unlinked “{title}”.", "success")
     return redirect(next_url)
@@ -805,6 +941,18 @@ def toggle_bookmark(slug):
     progress = _get_or_create_progress(problem.id)
     progress.bookmarked = not progress.bookmarked
     progress.updated_at = datetime.now(timezone.utc)
+    log_activity(
+        current_user.id,
+        "bookmarked" if progress.bookmarked else "unbookmarked",
+        (
+            f"Bookmarked {problem.name}"
+            if progress.bookmarked
+            else f"Removed bookmark from {problem.name}"
+        ),
+        entity_type="problem",
+        entity_id=problem.id,
+        href=url_for("main.problem_detail", slug=slug),
+    )
     db.session.commit()
 
     label = "Bookmarked" if progress.bookmarked else "Removed bookmark"
@@ -832,6 +980,14 @@ def update_leetcode_url(slug):
         return redirect(next_url)
 
     problem.leetcode_url = leetcode_url
+    log_activity(
+        current_user.id,
+        "leetcode_url_updated",
+        f"Updated LeetCode link for {problem.name}",
+        entity_type="problem",
+        entity_id=problem.id,
+        href=url_for("main.problem_detail", slug=slug),
+    )
     db.session.commit()
     flash("LeetCode link updated.", "success")
     return redirect(next_url)
@@ -862,6 +1018,14 @@ def reset_progress(slug):
     progress.completed_at = None
     progress.bookmarked = bookmarked
     progress.updated_at = datetime.now(timezone.utc)
+    log_activity(
+        current_user.id,
+        "progress_reset",
+        f"Reset progress for {problem.name}",
+        entity_type="problem",
+        entity_id=problem.id,
+        href=url_for("main.problem_detail", slug=slug),
+    )
     db.session.commit()
 
     flash(f"Reset {problem.name} to a clean slate.", "success")

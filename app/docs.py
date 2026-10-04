@@ -14,6 +14,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app import db
+from app.activity import log_activity
 from app.models import DocCategory, DocEntry, DocSection, Space, utcnow
 from app.utils import next_order_index, swap_order, unique_slug
 
@@ -159,6 +160,13 @@ def create_space():
         order_index=next_order_index(spaces),
     )
     db.session.add(space)
+    log_activity(
+        current_user.id,
+        "space_created",
+        f"Created space “{space.name}”",
+        entity_type="space",
+        href=url_for("docs.space_home", space_slug=space.slug),
+    )
     db.session.commit()
     flash(f"Created space “{space.name}”.", "success")
     return redirect(url_for("docs.space_home", space_slug=space.slug))
@@ -175,6 +183,14 @@ def rename_space(space_slug):
     space.name = name
     space.slug = _space_slug(name, current_user.id, exclude_id=space.id)
     space.updated_at = utcnow()
+    log_activity(
+        current_user.id,
+        "space_renamed",
+        f"Renamed space to “{space.name}”",
+        entity_type="space",
+        entity_id=space.id,
+        href=url_for("docs.space_home", space_slug=space.slug),
+    )
     db.session.commit()
     flash("Space renamed.", "success")
     next_url = request.form.get("next") or url_for("docs.index")
@@ -187,6 +203,13 @@ def delete_space(space_slug):
     space = _owned_space(space_slug)
     name = space.name
     db.session.delete(space)
+    log_activity(
+        current_user.id,
+        "space_deleted",
+        f"Deleted space “{name}”",
+        entity_type="space",
+        href=url_for("docs.index"),
+    )
     db.session.commit()
     flash(f"Deleted space “{name}”.", "success")
     return redirect(url_for("docs.index"))
@@ -265,6 +288,13 @@ def create_category(space_slug):
         order_index=next_order_index(categories),
     )
     db.session.add(cat)
+    log_activity(
+        current_user.id,
+        "category_created",
+        f"Created category “{cat.name}” in {space.name}",
+        entity_type="category",
+        href=url_for("docs.category", space_slug=space.slug, cat_slug=cat.slug),
+    )
     db.session.commit()
     flash(f"Created category “{cat.name}”.", "success")
     return redirect(
@@ -286,6 +316,14 @@ def rename_category(space_slug, category_id):
     cat.name = name
     cat.slug = _category_slug(name, space.id, exclude_id=cat.id)
     cat.updated_at = utcnow()
+    log_activity(
+        current_user.id,
+        "category_renamed",
+        f"Renamed category to “{cat.name}” in {space.name}",
+        entity_type="category",
+        entity_id=cat.id,
+        href=url_for("docs.category", space_slug=space.slug, cat_slug=cat.slug),
+    )
     db.session.commit()
     flash("Category renamed.", "success")
     return redirect(
@@ -300,6 +338,14 @@ def delete_category(space_slug, category_id):
     cat = DocCategory.query.filter_by(id=category_id, space_id=space.id).first_or_404()
     name = cat.name
     db.session.delete(cat)
+    log_activity(
+        current_user.id,
+        "category_deleted",
+        f"Deleted category “{name}” from {space.name}",
+        entity_type="space",
+        entity_id=space.id,
+        href=url_for("docs.space_home", space_slug=space.slug),
+    )
     db.session.commit()
     flash(f"Deleted category “{name}”.", "success")
     return redirect(url_for("docs.space_home", space_slug=space.slug))
@@ -346,6 +392,14 @@ def create_section(space_slug):
         order_index=next_order_index(sections),
     )
     db.session.add(section)
+    log_activity(
+        current_user.id,
+        "section_created",
+        f"Created section “{section.name}” in {cat.name}",
+        entity_type="category",
+        entity_id=cat.id,
+        href=url_for("docs.category", space_slug=space.slug, cat_slug=cat.slug),
+    )
     db.session.commit()
     flash(f"Created section “{section.name}”.", "success")
     return redirect(
@@ -375,6 +429,18 @@ def rename_section(space_slug, section_id):
     section.name = name
     section.slug = _section_slug(name, section.category_id, exclude_id=section.id)
     section.updated_at = utcnow()
+    log_activity(
+        current_user.id,
+        "section_renamed",
+        f"Renamed section to “{section.name}”",
+        entity_type="category",
+        entity_id=section.category_id,
+        href=url_for(
+            "docs.category",
+            space_slug=space.slug,
+            cat_slug=section.category.slug,
+        ),
+    )
     db.session.commit()
     flash("Section renamed.", "success")
     return redirect(
@@ -398,6 +464,13 @@ def delete_section(space_slug, section_id):
     cat_slug = section.category.slug
     name = section.name
     db.session.delete(section)
+    log_activity(
+        current_user.id,
+        "section_deleted",
+        f"Deleted section “{name}” from {section.category.name}",
+        entity_type="category",
+        href=url_for("docs.category", space_slug=space.slug, cat_slug=cat_slug),
+    )
     db.session.commit()
     flash(f"Deleted section “{name}”.", "success")
     return redirect(
@@ -477,6 +550,18 @@ def new_entry(space_slug):
             order_index=next_order_index(siblings),
         )
         db.session.add(entry)
+        log_activity(
+            current_user.id,
+            "entry_created",
+            f"Created entry “{entry.title}” in {cat.name}",
+            entity_type="entry",
+            href=url_for(
+                "docs.entry",
+                space_slug=space.slug,
+                cat_slug=cat.slug,
+                entry_slug=entry.slug,
+            ),
+        )
         db.session.commit()
         flash("Entry created.", "success")
         return redirect(
@@ -547,6 +632,19 @@ def edit_entry(space_slug, cat_slug, entry_slug):
         entry.slug = _entry_slug(title, cat.id, exclude_id=entry.id)
         entry.body = body
         entry.updated_at = utcnow()
+        log_activity(
+            current_user.id,
+            "entry_saved",
+            f"Saved entry “{entry.title}”",
+            entity_type="entry",
+            entity_id=entry.id,
+            href=url_for(
+                "docs.entry",
+                space_slug=space.slug,
+                cat_slug=cat.slug,
+                entry_slug=entry.slug,
+            ),
+        )
         db.session.commit()
         flash("Entry saved.", "success")
         return redirect(
@@ -581,6 +679,13 @@ def delete_entry(space_slug, entry_id):
     cat_slug = entry.category.slug
     title = entry.title
     db.session.delete(entry)
+    log_activity(
+        current_user.id,
+        "entry_deleted",
+        f"Deleted entry “{title}” from {entry.category.name}",
+        entity_type="category",
+        href=url_for("docs.category", space_slug=space.slug, cat_slug=cat_slug),
+    )
     db.session.commit()
     flash(f"Deleted entry “{title}”.", "success")
     return redirect(

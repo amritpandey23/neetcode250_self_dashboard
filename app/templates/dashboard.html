@@ -145,6 +145,64 @@
   </div>
   {% endif %}
 
+  <div class="activity-split">
+    <section class="activity-panel" aria-labelledby="attempted-history-title">
+      <header class="aging-preview-head">
+        <div>
+          <p class="section-label" id="attempted-history-title">Attempted</p>
+          <p class="aging-preview-sub muted">Newest first · still in progress</p>
+        </div>
+        <a class="btn btn-ghost btn-icon" href="{{ url_for('main.problems', status='attempted') }}">
+          {{ icon('circle-dot') }}<span>View all</span>
+        </a>
+      </header>
+      {% if attempted_recent %}
+      <div class="activity-list">
+        {% for item in attempted_recent %}
+        {% set problem = item.problem %}
+        <a class="aging-preview-item" href="{{ url_for('main.problem_detail', slug=problem.slug, next=url_for('main.dashboard')) }}">
+          <div class="aging-preview-main">
+            <strong>{{ problem.name }}</strong>
+            <span class="muted">{{ problem.category }} · {{ problem.difficulty }}</span>
+          </div>
+          <time class="activity-date" datetime="{{ item.at.isoformat() }}">{{ item.at.strftime('%Y-%m-%d') }}</time>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="activity-empty muted">No attempted problems yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="activity-panel" aria-labelledby="solved-history-title">
+      <header class="aging-preview-head">
+        <div>
+          <p class="section-label" id="solved-history-title">Solved history</p>
+          <p class="aging-preview-sub muted">Newest first · completion timeline</p>
+        </div>
+        <a class="btn btn-ghost btn-icon" href="{{ url_for('main.problems', status='done') }}">
+          {{ icon('check') }}<span>View all</span>
+        </a>
+      </header>
+      {% if solved_history %}
+      <div class="activity-list">
+        {% for item in solved_history %}
+        {% set problem = item.problem %}
+        <a class="aging-preview-item" href="{{ url_for('main.problem_detail', slug=problem.slug, next=url_for('main.dashboard')) }}">
+          <div class="aging-preview-main">
+            <strong>{{ problem.name }}</strong>
+            <span class="muted">{{ problem.category }} · {{ problem.difficulty }}</span>
+          </div>
+          <time class="activity-date" datetime="{{ item.at.isoformat() }}">{{ item.at.strftime('%Y-%m-%d') }}</time>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="activity-empty muted">No solved problems yet.</p>
+      {% endif %}
+    </section>
+  </div>
+
   {% if aging_preview %}
   <section class="aging-preview" aria-labelledby="aging-preview-title">
     <header class="aging-preview-head">
@@ -173,6 +231,53 @@
     </div>
   </section>
   {% endif %}
+
+  <section class="activity-log-panel" aria-labelledby="activity-log-title">
+    <header class="aging-preview-head">
+      <div>
+        <p class="section-label" id="activity-log-title">Activity log</p>
+        <p class="aging-preview-sub muted">Latest 5 actions · newest first</p>
+      </div>
+      {% if activity_total > 5 %}
+      <a class="btn btn-ghost btn-icon" href="{{ url_for('main.activity_log') }}">
+        {{ icon('history') }}<span>View all</span>
+      </a>
+      {% endif %}
+    </header>
+    {% if activity_feed %}
+    <div class="activity-log-list">
+      {% for item in activity_feed %}
+      {% if item.href %}
+      <a class="activity-log-item" href="{{ item.href }}">
+      {% else %}
+      <div class="activity-log-item is-static">
+      {% endif %}
+        <span class="activity-log-icon" aria-hidden="true">{{ icon(activity_icon(item.action)) }}</span>
+        <div class="aging-preview-main">
+          <strong>{{ item.summary }}</strong>
+          <span class="muted">{{ item.action.replace('_', ' ') }}</span>
+        </div>
+        <time class="activity-date" datetime="{{ item.created_at.isoformat() }}">
+          {{ item.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </time>
+      {% if item.href %}
+      </a>
+      {% else %}
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% if activity_total > 5 %}
+    <div class="activity-log-more">
+      <a class="btn btn-ghost btn-icon" href="{{ url_for('main.activity_log') }}">
+        {{ icon('history') }}<span>View all {{ activity_total }} activities</span>
+      </a>
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="activity-empty muted">No activity yet. Status changes, practice, bookmarks, and Spaces edits will show up here.</p>
+    {% endif %}
+  </section>
 </section>
 {% endblock %}
 

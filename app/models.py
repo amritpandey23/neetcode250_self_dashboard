@@ -24,6 +24,12 @@ class User(UserMixin, db.Model):
     spaces = db.relationship(
         "Space", back_populates="user", cascade="all, delete-orphan"
     )
+    activity_logs = db.relationship(
+        "ActivityLog",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="ActivityLog.created_at.desc()",
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -204,3 +210,20 @@ class ProblemEntryLink(db.Model):
     user = db.relationship("User")
     problem = db.relationship("Problem")
     entry = db.relationship("DocEntry", back_populates="problem_links")
+
+
+class ActivityLog(db.Model):
+    """Per-user chronological log of core app actions."""
+
+    __tablename__ = "activity_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    action = db.Column(db.String(64), nullable=False, index=True)
+    summary = db.Column(db.String(500), nullable=False)
+    entity_type = db.Column(db.String(40), nullable=True)
+    entity_id = db.Column(db.Integer, nullable=True)
+    href = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=utcnow, index=True)
+
+    user = db.relationship("User", back_populates="activity_logs")
