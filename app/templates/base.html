@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}NeetCode 250{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='icons/favicon.svg') }}" type="image/svg+xml">
+  <link rel="icon" href="{{ url_for('static', filename='icons/favicon.ico') }}" sizes="any">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% from "macros.html" import icon %}
+  {% set endpoint = request.endpoint or '' %}
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
+      <span class="brand-mark">{{ icon('code-2') }}</span>
+      <span class="brand-text">NeetCode 250</span>
+    </a>
+    {% if current_user.is_authenticated %}
+    <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav">
+      {{ icon('menu') }}
+    </button>
+    <nav class="site-nav" id="site-nav">
+      <a class="nav-link {% if endpoint == 'main.dashboard' %}is-active{% endif %}" href="{{ url_for('main.dashboard') }}">{{ icon('layout-dashboard') }}<span>Dashboard</span></a>
+      <a class="nav-link {% if endpoint == 'main.problems' %}is-active{% endif %}" href="{{ url_for('main.problems') }}">{{ icon('list') }}<span>Problems</span></a>
+      <a class="nav-link {% if endpoint == 'main.roadmap' %}is-active{% endif %}" href="{{ url_for('main.roadmap') }}">{{ icon('route') }}<span>Roadmap</span></a>
+      <a class="nav-link {% if endpoint == 'main.contests' %}is-active{% endif %}" href="{{ url_for('main.contests') }}">{{ icon('trophy') }}<span>Contests</span></a>
+      <a class="nav-link {% if endpoint == 'main.aging' %}is-active{% endif %}" href="{{ url_for('main.aging') }}">{{ icon('hourglass') }}<span>Aging</span></a>
+      <a class="nav-link {% if endpoint == 'main.bookmarks' %}is-active{% endif %}" href="{{ url_for('main.bookmarks') }}">{{ icon('bookmark') }}<span>Bookmarks</span></a>
+      <span class="nav-user">{{ icon('user') }}<span>{{ current_user.username }}</span></span>
+      <a class="btn btn-ghost btn-icon" href="{{ url_for('auth.logout') }}">{{ icon('log-out') }}<span>Logout</span></a>
+    </nav>
+    {% endif %}
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="toast-stack" id="toast-stack" aria-live="polite" aria-relevant="additions">
+      {% for category, message in messages %}
+      <div class="toast toast-{{ category }}" role="status" data-toast>
+        {% if category == 'success' %}{{ icon('circle-check') }}
+        {% elif category == 'error' %}{{ icon('circle-alert') }}
+        {% else %}{{ icon('info') }}
+        {% endif %}
+        <span class="toast-message">{{ message }}</span>
+        <button type="button" class="toast-dismiss" aria-label="Dismiss notification" data-toast-dismiss>
+          {{ icon('x') }}
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="site-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script>
+    window.refreshIcons = function () {
+      if (window.lucide && typeof window.lucide.createIcons === "function") {
+        window.lucide.createIcons({ attrs: { "stroke-width": 1.75 } });
+      }
+    };
+    document.addEventListener("DOMContentLoaded", function () {
+      window.refreshIcons();
+      var toggle = document.getElementById("nav-toggle");
+      var nav = document.getElementById("site-nav");
+      if (toggle && nav) {
+        toggle.addEventListener("click", function () {
+          var open = nav.classList.toggle("is-open");
+          toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+      }
+    });
+  </script>
+  <script src="{{ url_for('static', filename='js/toasts.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

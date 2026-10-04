@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, contest_calendar_menu %}
+{% block title %}Contests · NeetCode 250{% endblock %}
+{% block content %}
+<section class="dash-hero">
+  <div>
+    <p class="eyebrow">LeetCode schedule</p>
+    <h1>{{ icon('trophy') }} Contests</h1>
+    <p class="lede">
+      Upcoming weekly and biweekly contests from
+      <a href="{{ schedule.source }}" target="_blank" rel="noopener">leetcode.com/contest</a>.
+      Add any contest to Google, Outlook, or download an .ics file.
+    </p>
+  </div>
+  <a class="btn btn-ghost btn-icon" href="{{ url_for('main.contests', refresh=1) }}">
+    {{ icon('refresh-cw') }}<span>Refresh</span>
+  </a>
+</section>
+
+{% if schedule.error and not schedule.weekly and not schedule.biweekly %}
+<div class="empty-panel">
+  <p class="empty">
+    {{ icon('wifi-off') }}
+    Couldn’t load contest schedule right now. Try refresh in a moment.
+  </p>
+</div>
+{% else %}
+{% if schedule.error %}
+<p class="muted contest-stale-note">
+  {{ icon('info') }} Showing cached schedule (live refresh failed).
+</p>
+{% endif %}
+
+<div class="contest-grid">
+  <section class="contest-column" aria-labelledby="weekly-title">
+    <header class="contest-column-head">
+      <h2 id="weekly-title">{{ icon('calendar-days') }} Weekly</h2>
+      <p class="muted">Usually every Sunday</p>
+    </header>
+    {% if schedule.weekly %}
+    <div class="contest-list">
+      {% for contest in schedule.weekly %}
+      <article class="contest-card {% if contest.is_live %}is-live{% endif %}">
+        <div class="contest-card-main">
+          <p class="contest-kind">{{ contest.kind_label }}</p>
+          <h3>
+            <a href="{{ contest.url }}" target="_blank" rel="noopener">
+              {{ contest.title }}
+              {{ icon('external-link') }}
+            </a>
+          </h3>
+          <p class="contest-when">{{ contest.start_display }}</p>
+          <p class="muted">Duration {{ contest.duration_minutes }} minutes</p>
+          <div class="contest-card-actions">
+            {{ contest_calendar_menu(contest) }}
+          </div>
+        </div>
+        <span class="contest-relative {% if contest.is_live %}is-live{% endif %}">
+          {{ contest.relative }}
+        </span>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">{{ icon('calendar-x') }} No upcoming weekly contests found.</p>
+    {% endif %}
+  </section>
+
+  <section class="contest-column" aria-labelledby="biweekly-title">
+    <header class="contest-column-head">
+      <h2 id="biweekly-title">{{ icon('calendar-range') }} Biweekly</h2>
+      <p class="muted">Usually every other Saturday</p>
+    </header>
+    {% if schedule.biweekly %}
+    <div class="contest-list">
+      {% for contest in schedule.biweekly %}
+      <article class="contest-card {% if contest.is_live %}is-live{% endif %}">
+        <div class="contest-card-main">
+          <p class="contest-kind">{{ contest.kind_label }}</p>
+          <h3>
+            <a href="{{ contest.url }}" target="_blank" rel="noopener">
+              {{ contest.title }}
+              {{ icon('external-link') }}
+            </a>
+          </h3>
+          <p class="contest-when">{{ contest.start_display }}</p>
+          <p class="muted">Duration {{ contest.duration_minutes }} minutes</p>
+          <div class="contest-card-actions">
+            {{ contest_calendar_menu(contest) }}
+          </div>
+        </div>
+        <span class="contest-relative {% if contest.is_live %}is-live{% endif %}">
+          {{ contest.relative }}
+        </span>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">{{ icon('calendar-x') }} No upcoming biweekly contests found.</p>
+    {% endif %}
+  </section>
+</div>
+
+{% if schedule.fetched_at %}
+<p class="muted contest-fetched">
+  Last fetched {{ schedule.fetched_at.strftime('%Y-%m-%d %H:%M') }} UTC
+</p>
+{% endif %}
+{% endif %}
+{% endblock %}

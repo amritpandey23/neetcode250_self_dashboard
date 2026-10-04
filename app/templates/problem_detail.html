@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, bookmark_button %}
+{% block title %}{{ problem.name }} · NeetCode 250{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+{% endblock %}
+
+{% block content %}
+{% set current_status = progress.status if progress else 'todo' %}
+<article class="problem-workspace">
+  <a class="back-link" href="{{ back_href }}">
+    {{ icon('arrow-left') }}
+    <span>Back to {{ back_label }}</span>
+  </a>
+
+  <header class="problem-header">
+    <div class="problem-header-main">
+      <p class="problem-category">{{ problem.category }}</p>
+      <h1 class="problem-title">{{ problem.name }}</h1>
+      <div class="problem-meta-line">
+        <span class="diff diff-{{ problem.difficulty|lower }}">{{ problem.difficulty }}</span>
+        <span class="meta-sep" aria-hidden="true">·</span>
+        <a class="meta-link" href="{{ problem.leetcode_url }}" target="_blank" rel="noopener" aria-label="Open {{ problem.name }} on LeetCode">
+          LeetCode
+          {{ icon('external-link') }}
+        </a>
+        {% if progress and progress.status in ['attempted', 'done'] %}
+        <span class="meta-sep" aria-hidden="true">·</span>
+        <span class="muted">{{ progress.solve_count }} / {{ aging_max_solves }} solves</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="problem-actions">
+      {{ bookmark_button(problem.slug, progress.bookmarked if progress else false, url_for('main.problem_detail', slug=problem.slug, next=back_url), problem.name, true) }}
+      <a class="btn btn-ghost btn-icon problem-leetcode-btn" href="{{ problem.leetcode_url }}" target="_blank" rel="noopener" aria-label="Open {{ problem.name }} on LeetCode">
+        <img class="leetcode-icon" src="{{ url_for('static', filename='icons/leetcode.svg') }}" alt="" width="16" height="16">
+        <span>Open on LeetCode</span>
+        {{ icon('external-link') }}
+      </a>
+    </div>
+  </header>
+
+  <form class="problem-form" id="problem-form" method="post" action="{{ url_for('main.problem_detail', slug=problem.slug) }}">
+    <input type="hidden" name="next" value="{{ back_url }}">
+
+    <section class="status-panel" aria-labelledby="status-label">
+      <p class="section-label" id="status-label">Status</p>
+      <div class="status-control status-control-{{ current_status }}">
+        <span class="status-control-icon" aria-hidden="true">
+          {% if current_status == 'done' %}{{ icon('check') }}
+          {% elif current_status == 'attempted' %}{{ icon('circle-dot') }}
+          {% else %}{{ icon('circle') }}
+          {% endif %}
+        </span>
+        <select name="status" id="status-select" aria-label="Problem status">
+          {% for s in statuses %}
+          <option value="{{ s }}" {% if current_status == s %}selected{% endif %}>
+            {{ status_labels[s] }}
+          </option>
+          {% endfor %}
+        </select>
+        <span class="status-chevron" aria-hidden="true">{{ icon('chevron-down') }}</span>
+      </div>
+      {% if progress and progress.last_practiced_at %}
+      <p class="status-hint muted">Last practiced {{ progress.last_practiced_at.strftime('%Y-%m-%d') }}</p>
+      {% endif %}
+    </section>
+
+    <section class="notes-panel" aria-labelledby="notes-label">
+      <div class="notes-field-head">
+        <div>
+          <p class="section-label" id="notes-label">Notes</p>
+          <p class="notes-hint muted">Markdown · LaTeX supported</p>
+        </div>
+        <button type="button" class="btn btn-ghost btn-icon" id="notes-edit-toggle">
+          {{ icon('pen-line') }}<span>Edit notes</span>
+        </button>
+      </div>
+
+      <div class="md-editor is-view" id="notes-editor" data-mode="preview">
+        <div class="md-toolbar" role="toolbar" aria-label="Notes formatting">
+          <div class="md-toolbar-group">
+            <button type="button" class="md-btn" data-action="bold" title="Bold (Ctrl+B)">{{ icon('bold') }}</button>
+            <button type="button" class="md-btn" data-action="italic" title="Italic (Ctrl+I)">{{ icon('italic') }}</button>
+            <button type="button" class="md-btn" data-action="strike" title="Strikethrough">{{ icon('strikethrough') }}</button>
+          </div>
+          <div class="md-toolbar-group">
+            <button type="button" class="md-btn" data-action="h2" title="Heading">{{ icon('heading-2') }}</button>
+            <button type="button" class="md-btn" data-action="ul" title="Bullet list">{{ icon('list') }}</button>
+            <button type="button" class="md-btn" data-action="ol" title="Numbered list">{{ icon('list-ordered') }}</button>
+            <button type="button" class="md-btn" data-action="quote" title="Quote">{{ icon('quote') }}</button>
+          </div>
+          <div class="md-toolbar-group">
+            <button type="button" class="md-btn" data-action="code" title="Inline code">{{ icon('code') }}</button>
+            <button type="button" class="md-btn" data-action="codeblock" title="Code block">{{ icon('square-code') }}</button>
+            <button type="button" class="md-btn" data-action="link" title="Link">{{ icon('link') }}</button>
+            <button type="button" class="md-btn" data-action="table" title="Table">{{ icon('table') }}</button>
+          </div>
+          <div class="md-toolbar-group">
+            <button type="button" class="md-btn" data-action="math" title="Inline math">{{ icon('sigma') }}</button>
+            <button type="button" class="md-btn" data-action="mathblock" title="Block math">{{ icon('square-function') }}</button>
+          </div>
+          <div class="md-toolbar-group md-toolbar-modes">
+            <button type="button" class="md-btn" data-mode="split" title="Split view">{{ icon('columns-2') }}</button>
+            <button type="button" class="md-btn" data-mode="write" title="Write only">{{ icon('pen') }}</button>
+            <button type="button" class="md-btn is-active" data-mode="preview" title="Preview only">{{ icon('eye') }}</button>
+          </div>
+        </div>
+
+        <div class="md-panes">
+          <div class="md-pane md-pane-write">
+            <label class="sr-only" for="notes-input">Solution notes</label>
+            <textarea
+              id="notes-input"
+              name="notes"
+              class="md-input"
+              spellcheck="true"
+              placeholder="Write your approach, observations, edge cases, or solution notes here.
+
+## Approach
+
+
+## Complexity
+- Time: $O(n)$
+- Space: $O(1)$
+"
+            >{{ progress.notes if progress and progress.notes else '' }}</textarea>
+          </div>
+          <div class="md-pane md-pane-preview">
+            <div class="md-preview-label">Preview</div>
+            <div id="notes-preview" class="md-preview markdown-body" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes-footer">
+        <div class="save-state muted" id="save-state">
+          {% if progress and progress.updated_at %}
+          {{ icon('check') }}
+          <span>Last saved {{ progress.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC</span>
+          {% else %}
+          <span>Not saved yet</span>
+          {% endif %}
+        </div>
+        <div class="notes-footer-actions">
+          {% if progress and progress.status in ['attempted', 'done'] %}
+          <button class="btn btn-ghost btn-icon" type="submit" name="log_practice" value="1" title="Reset aging timer and count another solve if Done">
+            {{ icon('refresh-cw') }}<span>Log practice</span>
+          </button>
+          {% endif %}
+          <button class="btn btn-primary btn-icon" type="submit" id="save-notes-btn" disabled>
+            {{ icon('save') }}<span>Save</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </form>
+
+  {% if progress and (progress.status != 'todo' or progress.notes or progress.solve_count or progress.last_practiced_at) %}
+  <form
+    class="reset-progress-form"
+    method="post"
+    action="{{ url_for('main.reset_progress', slug=problem.slug) }}"
+    onsubmit="return confirm({{ ('Reset ' ~ problem.name ~ ' to a clean slate? Status, notes, and practice stats will be cleared. Bookmark is kept.')|tojson }});"
+  >
+    <input type="hidden" name="next" value="{{ url_for('main.problem_detail', slug=problem.slug, next=back_url) }}">
+    <button class="btn btn-danger-ghost btn-icon" type="submit">
+      {{ icon('eraser') }}<span>Reset progress</span>
+    </button>
+    <p class="muted reset-progress-hint">Clears status, notes, and practice history. Bookmark is kept.</p>
+  </form>
+  {% endif %}
+
+  <nav class="problem-pager" aria-label="Adjacent problems">
+    {% if prev_problem %}
+    <a class="pager-link" href="{{ url_for('main.problem_detail', slug=prev_problem.slug, next=back_url) }}">
+      {{ icon('arrow-left') }}
+      <span>
+        <small>Previous</small>
+        <strong>{{ prev_problem.name }}</strong>
+      </span>
+    </a>
+    {% else %}
+    <span></span>
+    {% endif %}
+    {% if next_problem %}
+    <a class="pager-link pager-link-next" href="{{ url_for('main.problem_detail', slug=next_problem.slug, next=back_url) }}">
+      <span>
+        <small>Next</small>
+        <strong>{{ next_problem.name }}</strong>
+      </span>
+      {{ icon('arrow-right') }}
+    </a>
+    {% endif %}
+  </nav>
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked@13.0.3/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="{{ url_for('static', filename='js/notes-editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/problem-detail.js') }}"></script>
+{% endblock %}

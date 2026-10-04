@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, bookmark_button, leetcode_icon_link, status_badge %}
+{% block title %}Bookmarks · NeetCode 250{% endblock %}
+{% block content %}
+<section class="dash-hero">
+  <div>
+    <p class="eyebrow">Saved for later</p>
+    <h1>{{ icon('bookmark') }} Bookmarks</h1>
+    <p class="lede">{{ problems|length }} starred problem{% if problems|length != 1 %}s{% endif %}.</p>
+  </div>
+</section>
+
+{% if problems %}
+<div class="problem-table-wrap">
+  <table class="problem-table">
+    <thead>
+      <tr>
+        <th class="col-star"></th>
+        <th class="col-status">Status</th>
+        <th class="col-problem">Problem</th>
+        <th class="col-lc"></th>
+        <th class="col-category">Category</th>
+        <th class="col-diff">Difficulty</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for problem in problems %}
+      {% set entry = progress_by_id.get(problem.id) %}
+      {% set status = entry.status if entry else 'todo' %}
+      <tr class="status-{{ status }}">
+        <td class="col-star">
+          {{ bookmark_button(problem.slug, true, url_for('main.bookmarks'), problem.name) }}
+        </td>
+        <td class="col-status">{{ status_badge(status, status_labels.get(status, status), true) }}</td>
+        <td class="col-problem">
+          <a class="problem-name" href="{{ url_for('main.problem_detail', slug=problem.slug, next=url_for('main.bookmarks')) }}">{{ problem.name }}</a>
+        </td>
+        <td class="col-lc">
+          {{ leetcode_icon_link(problem.leetcode_url, problem.name) }}
+        </td>
+        <td class="col-category">{{ problem.category }}</td>
+        <td class="col-diff"><span class="diff diff-{{ problem.difficulty|lower }}">{{ problem.difficulty }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="problem-table-wrap">
+  <p class="empty">{{ icon('bookmark-x') }} No bookmarks yet. Star a problem from the dashboard or problem page.</p>
+</div>
+{% endif %}
+{% endblock %}

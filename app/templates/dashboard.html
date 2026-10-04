@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, status_badge, contest_calendar_menu %}
+{% block title %}Dashboard · NeetCode 250{% endblock %}
+{% block content %}
+<section class="overview-page">
+  <section class="dash-hero">
+    <div class="hero-copy">
+      <p class="section-label">Overview</p>
+      <h1>NeetCode 250</h1>
+      <p class="hero-progress-text">
+        <strong>{{ stats.solved }}</strong> / {{ stats.total }} problems solved
+        <span class="muted">· {{ stats.percent }}% complete</span>
+      </p>
+      <div class="hero-bar" aria-hidden="true">
+        <div class="hero-bar-fill" style="width: {{ stats.percent }}%"></div>
+      </div>
+      <div class="overview-actions">
+        <a class="btn btn-primary btn-icon" href="{{ url_for('main.problems') }}">
+          {{ icon('list') }}<span>Browse problems</span>
+        </a>
+        {% if continue_learning %}
+        <a class="btn btn-ghost btn-icon" href="{{ url_for('main.problem_detail', slug=continue_learning.problem.slug, next=url_for('main.dashboard')) }}">
+          {{ icon('play') }}<span>Continue</span>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% if continue_learning %}
+    <aside class="continue-card">
+      <p class="section-label">Continue learning</p>
+      <a class="continue-title" href="{{ url_for('main.problem_detail', slug=continue_learning.problem.slug, next=url_for('main.dashboard')) }}">
+        {{ continue_learning.problem.name }}
+      </a>
+      <p class="continue-meta">
+        {{ continue_learning.problem.category }}
+        · <span class="diff diff-{{ continue_learning.problem.difficulty|lower }}">{{ continue_learning.problem.difficulty }}</span>
+        · {{ status_badge(continue_learning.status, status_labels[continue_learning.status]) }}
+      </p>
+      <a class="btn btn-primary btn-icon" href="{{ url_for('main.problem_detail', slug=continue_learning.problem.slug, next=url_for('main.dashboard')) }}">
+        <span>Continue</span>{{ icon('arrow-right') }}
+      </a>
+    </aside>
+    {% endif %}
+  </section>
+
+  <section class="stat-row" aria-label="Status counts">
+    <div class="stat">
+      <strong>{{ stats.total }}</strong>
+      <span class="stat-label">Problems</span>
+    </div>
+    <div class="stat">
+      <strong>{{ stats.counts.attempted }}</strong>
+      <span class="stat-label">Attempted</span>
+    </div>
+    <div class="stat">
+      <strong>{{ stats.counts.done }}</strong>
+      <span class="stat-label">Solved</span>
+    </div>
+  </section>
+
+  {% set show_contests = contest_preview and (contest_preview.next_weekly or contest_preview.next_biweekly) %}
+  {% if progress_timeline or show_contests %}
+  <div class="dash-split {% if progress_timeline and show_contests %}has-both{% elif progress_timeline %}has-chart-only{% else %}has-contests-only{% endif %}">
+    {% if progress_timeline %}
+    <section class="progress-chart-card" aria-labelledby="progress-chart-title">
+      <header class="progress-chart-head">
+        <div>
+          <p class="section-label" id="progress-chart-title">Progress</p>
+          <p class="aging-preview-sub muted">Cumulative attempted and solved over time</p>
+        </div>
+        <div class="range-tabs" role="tablist" aria-label="Timeline range">
+          {% for days, label in progress_timeline.options %}
+          <a
+            class="range-tab {% if progress_timeline.days == days %}is-active{% endif %}"
+            href="{{ url_for('main.dashboard', range=days) }}"
+            role="tab"
+            aria-selected="{{ 'true' if progress_timeline.days == days else 'false' }}"
+          >{{ label }}</a>
+          {% endfor %}
+        </div>
+      </header>
+      <div class="progress-chart-wrap">
+        <canvas
+          id="progress-chart"
+          width="640"
+          height="180"
+          aria-label="Line chart of cumulative attempted and solved problems"
+          data-labels='{{ progress_timeline.labels|tojson }}'
+          data-attempted='{{ progress_timeline.attempted|tojson }}'
+          data-done='{{ progress_timeline.done|tojson }}'
+        ></canvas>
+      </div>
+      <div class="progress-chart-legend" aria-hidden="true">
+        <span class="legend-item legend-attempted">Attempted</span>
+        <span class="legend-item legend-done">Solved</span>
+      </div>
+    </section>
+    {% endif %}
+
+    {% if show_contests %}
+    <section class="contest-preview" aria-labelledby="contest-preview-title">
+      <header class="aging-preview-head">
+        <div>
+          <p class="section-label" id="contest-preview-title">Upcoming contests</p>
+          <p class="aging-preview-sub muted">Next weekly and biweekly from LeetCode</p>
+        </div>
+        <a class="btn btn-ghost btn-icon" href="{{ url_for('main.contests') }}">
+          {{ icon('trophy') }}<span>View schedule</span>
+        </a>
+      </header>
+      <div class="contest-preview-list">
+        {% if contest_preview.next_weekly %}
+        {% set c = contest_preview.next_weekly %}
+        <div class="contest-preview-item">
+          <a class="contest-preview-link" href="{{ c.url }}" target="_blank" rel="noopener">
+            <div class="aging-preview-main">
+              <strong>{{ c.title }}</strong>
+              <span class="muted">{{ c.start_display }}</span>
+            </div>
+          </a>
+          <div class="contest-preview-meta">
+            <span class="contest-relative">{{ c.relative }}</span>
+            {{ contest_calendar_menu(c, true) }}
+          </div>
+        </div>
+        {% endif %}
+        {% if contest_preview.next_biweekly %}
+        {% set c = contest_preview.next_biweekly %}
+        <div class="contest-preview-item">
+          <a class="contest-preview-link" href="{{ c.url }}" target="_blank" rel="noopener">
+            <div class="aging-preview-main">
+              <strong>{{ c.title }}</strong>
+              <span class="muted">{{ c.start_display }}</span>
+            </div>
+          </a>
+          <div class="contest-preview-meta">
+            <span class="contest-relative">{{ c.relative }}</span>
+            {{ contest_calendar_menu(c, true) }}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if aging_preview %}
+  <section class="aging-preview" aria-labelledby="aging-preview-title">
+    <header class="aging-preview-head">
+      <div>
+        <p class="section-label" id="aging-preview-title">Due for review</p>
+        <p class="aging-preview-sub muted">Top aging problems · weeks since last practice</p>
+      </div>
+      <a class="btn btn-ghost btn-icon" href="{{ url_for('main.aging') }}">
+        {{ icon('hourglass') }}<span>View all</span>
+      </a>
+    </header>
+    <div class="aging-preview-list">
+      {% for item in aging_preview %}
+      {% set problem = item.problem %}
+      <a class="aging-preview-item" href="{{ url_for('main.problem_detail', slug=problem.slug, next=url_for('main.aging')) }}">
+        <div class="aging-preview-main">
+          <strong>{{ problem.name }}</strong>
+          <span class="muted">{{ problem.category }} · {{ problem.difficulty }}</span>
+        </div>
+        <span class="age-pill" title="Last practiced {{ item.entry.last_practiced_at.strftime('%Y-%m-%d') if item.entry.last_practiced_at else '—' }}">
+          {{ icon('timer') }}
+          {{ item.age_weeks }} week{% if item.age_weeks != 1 %}s{% endif %}
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if progress_timeline %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/progress-chart.js') }}"></script>
+{% endif %}
+{% endblock %}

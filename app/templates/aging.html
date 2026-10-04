@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, bookmark_button, leetcode_icon_link, status_badge %}
+{% block title %}Aging · NeetCode 250{% endblock %}
+{% block content %}
+<section class="dash-hero">
+  <div>
+    <p class="eyebrow">Spaced review</p>
+    <h1>{{ icon('hourglass') }} Aging</h1>
+    <p class="lede">
+      Problems last practiced more than {{ aging_weeks }} weeks ago, solved fewer than {{ aging_max_solves }} times.
+      {{ items|length }} due for review.
+    </p>
+  </div>
+</section>
+
+{% if items %}
+<div class="problem-table-wrap">
+  <table class="problem-table aging-table">
+    <thead>
+      <tr>
+        <th class="col-star"></th>
+        <th class="col-status">Status</th>
+        <th class="col-problem">Problem</th>
+        <th class="col-lc"></th>
+        <th class="col-category">Category</th>
+        <th class="col-diff">Difficulty</th>
+        <th class="col-age">Age</th>
+        <th class="col-solves">Solves</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      {% set problem = item.problem %}
+      {% set entry = item.entry %}
+      {% set status = entry.status %}
+      <tr class="status-{{ status }}">
+        <td class="col-star">
+          {{ bookmark_button(problem.slug, entry.bookmarked, url_for('main.aging'), problem.name) }}
+        </td>
+        <td class="col-status">{{ status_badge(status, status_labels.get(status, status), true) }}</td>
+        <td class="col-problem">
+          <a class="problem-name" href="{{ url_for('main.problem_detail', slug=problem.slug, next=url_for('main.aging')) }}">{{ problem.name }}</a>
+        </td>
+        <td class="col-lc">
+          {{ leetcode_icon_link(problem.leetcode_url, problem.name) }}
+        </td>
+        <td class="col-category">{{ problem.category }}</td>
+        <td class="col-diff"><span class="diff diff-{{ problem.difficulty|lower }}">{{ problem.difficulty }}</span></td>
+        <td class="col-age">
+          <span class="age-pill" title="Last practiced {{ entry.last_practiced_at.strftime('%Y-%m-%d') if entry.last_practiced_at else '—' }} · {{ item.age_days }} days">
+            {{ icon('timer') }} {{ item.age_weeks }}w
+          </span>
+        </td>
+        <td class="col-solves mono">{{ entry.solve_count }}/{{ aging_max_solves }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="problem-table-wrap">
+  <p class="empty">
+    {{ icon('circle-check') }}
+    Nothing aging yet. Mark problems Attempted or Done — they’ll appear here after {{ aging_weeks }} weeks if solved fewer than {{ aging_max_solves }} times.
+  </p>
+</div>
+{% endif %}
+{% endblock %}

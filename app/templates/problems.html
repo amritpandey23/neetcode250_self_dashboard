@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, bookmark_button, leetcode_icon_link, status_badge %}
+{% block title %}
+{% if filters.category %}{{ filters.category }} · Problems{% else %}All Problems{% endif %} · NeetCode 250
+{% endblock %}
+{% block content %}
+<div class="dash-layout">
+  <button type="button" class="sidebar-toggle btn btn-ghost btn-icon" id="sidebar-toggle" aria-expanded="false" aria-controls="category-sidebar">
+    {{ icon('panel-left') }}<span>Categories</span>
+  </button>
+
+  <aside class="category-sidebar" id="category-sidebar" aria-label="Problem categories">
+    <div class="sidebar-head">
+      <p class="section-label">Categories</p>
+      <a class="sidebar-all {% if not filters.category %}is-active{% endif %}"
+         href="{{ url_for('main.problems', difficulty=filters.difficulty, status=filters.status, q=filters.q) }}">
+        <span class="sidebar-link-text">All Problems</span>
+        <span class="mono sidebar-count">{{ stats.solved }} / {{ stats.total }}</span>
+      </a>
+    </div>
+    <nav class="sidebar-nav">
+      {% for cat in categories %}
+      {% set data = stats.by_category.get(cat, {'done': 0, 'total': 0}) %}
+      <a class="sidebar-link {% if filters.category == cat %}is-active{% endif %}"
+         href="{{ url_for('main.problems', category=cat, difficulty=filters.difficulty, status=filters.status, q=filters.q) }}">
+        <span class="sidebar-link-text">{{ cat }}</span>
+        <span class="mono sidebar-count">{{ data.done }} / {{ data.total }}</span>
+        {% if data.done > 0 %}
+        <span class="sidebar-bar" aria-hidden="true">
+          <span class="sidebar-bar-fill" style="width: {{ (data.done / data.total * 100) if data.total else 0 }}%"></span>
+        </span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </nav>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
+
+  <div class="dash-main">
+    {% if filters.category %}
+    <section class="dash-hero dash-hero-category">
+      <div class="hero-copy">
+        <p class="section-label">Category</p>
+        <h1>{{ filters.category }}</h1>
+        {% set data = stats.by_category.get(filters.category, {'done': 0, 'total': 0}) %}
+        <p class="hero-progress-text">
+          <strong>{{ data.done }}</strong> / {{ data.total }} solved
+        </p>
+        <div class="hero-bar" aria-hidden="true">
+          <div class="hero-bar-fill" style="width: {{ (data.done / data.total * 100) if data.total else 0 }}%"></div>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary btn-icon" id="open-add-problem" data-category="{{ filters.category }}">
+        {{ icon('plus') }}<span>Add Question</span>
+      </button>
+    </section>
+    {% else %}
+    <section class="dash-hero dash-hero-category">
+      <div class="hero-copy">
+        <p class="section-label">Library</p>
+        <h1>All Problems</h1>
+        <p class="hero-progress-text">
+          <strong>{{ stats.solved }}</strong> / {{ stats.total }} solved
+          {% if problems|length != stats.total %}
+          <span class="muted">· {{ problems|length }} shown</span>
+          {% endif %}
+        </p>
+        <div class="hero-bar" aria-hidden="true">
+          <div class="hero-bar-fill" style="width: {{ stats.percent }}%"></div>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary btn-icon" id="open-add-problem" data-category="">
+        {{ icon('plus') }}<span>Add Question</span>
+      </button>
+    </section>
+    {% endif %}
+
+    <form class="filters" id="filters-form" method="get" action="{{ url_for('main.problems') }}">
+      {% if filters.category %}
+      <input type="hidden" name="category" value="{{ filters.category }}">
+      {% endif %}
+      <label class="filter-search">
+        <span class="sr-only">Search</span>
+        <span class="filter-search-icon" aria-hidden="true">{{ icon('search') }}</span>
+        <input type="search" name="q" value="{{ filters.q }}" placeholder="Search problems…">
+      </label>
+      <label>
+        <span class="sr-only">Difficulty</span>
+        <select name="difficulty" data-autosubmit>
+          <option value="">Difficulty</option>
+          {% for d in ['Easy', 'Medium', 'Hard'] %}
+          <option value="{{ d }}" {% if filters.difficulty == d %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span class="sr-only">Status</span>
+        <select name="status" data-autosubmit>
+          <option value="">Status</option>
+          {% for s in statuses %}
+          <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ status_labels[s] }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="filter-actions">
+        <a class="btn btn-ghost btn-icon" href="{{ url_for('main.problems', category=filters.category) if filters.category else url_for('main.problems') }}">
+          {{ icon('rotate-ccw') }}<span>Reset</span>
+        </a>
+      </div>
+    </form>
+
+    {% if grouped_problems %}
+      {% for cat, cat_problems in grouped_problems %}
+      <section class="category-group" id="cat-{{ loop.index }}">
+        {% if not filters.category %}
+        <header class="category-group-head">
+          <h2>{{ cat }}</h2>
+          {% set data = stats.by_category.get(cat, {'done': 0, 'total': 0}) %}
+          <span class="mono muted">{{ data.done }}/{{ data.total }}</span>
+        </header>
+        {% endif %}
+        <div class="problem-list" role="list">
+          {% for problem in cat_problems %}
+          {% set entry = progress_by_id.get(problem.id) %}
+          {% set status = entry.status if entry else 'todo' %}
+          {% set bookmarked = entry.bookmarked if entry else false %}
+          {% set detail_url = url_for('main.problem_detail', slug=problem.slug, next=return_url) %}
+          <article class="problem-row status-{{ status }}" role="listitem" data-href="{{ detail_url }}" tabindex="0">
+            <div class="problem-row-star">
+              {{ bookmark_button(problem.slug, bookmarked, return_url, problem.name) }}
+            </div>
+            {{ status_badge(status, status_labels.get(status, status), true) }}
+            <a class="problem-name" href="{{ detail_url }}">{{ problem.name }}</a>
+            <div class="problem-row-lc">
+              {{ leetcode_icon_link(problem.leetcode_url, problem.name) }}
+            </div>
+            <div class="problem-row-end">
+              <span class="diff diff-{{ problem.difficulty|lower }}">{{ problem.difficulty }}</span>
+              <span class="row-chevron" aria-hidden="true">{{ icon('chevron-right') }}</span>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    {% else %}
+      <div class="empty-panel">
+        <p class="empty">{{ icon('search-x') }} No problems match these filters.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<dialog class="modal" id="add-problem-modal" aria-labelledby="add-problem-title">
+  <form class="modal-card" method="post" action="{{ url_for('main.add_problem') }}">
+    <input type="hidden" name="next" value="{{ return_url }}">
+    <header class="modal-head">
+      <h2 id="add-problem-title">{{ icon('circle-plus') }} Add question</h2>
+      <button type="button" class="modal-close" id="close-add-problem" aria-label="Close">{{ icon('x') }}</button>
+    </header>
+    <div class="modal-body">
+      <label>
+        Name
+        <input type="text" name="name" required placeholder="e.g. Product of Array Except Self">
+      </label>
+      <label>
+        Category
+        <select name="category" id="add-problem-category" required>
+          <option value="" disabled {% if not filters.category %}selected{% endif %}>Select category</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}" {% if filters.category == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Difficulty
+        <select name="difficulty" required>
+          {% for d in ['Easy', 'Medium', 'Hard'] %}
+          <option value="{{ d }}" {% if d == 'Medium' %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        LeetCode URL
+        <input type="text" name="leetcode_url" required placeholder="https://leetcode.com/problems/...">
+      </label>
+    </div>
+    <footer class="modal-actions">
+      <button type="button" class="btn btn-ghost btn-icon" id="cancel-add-problem">{{ icon('x') }}<span>Cancel</span></button>
+      <button class="btn btn-primary btn-icon" type="submit">{{ icon('plus') }}<span>Add question</span></button>
+    </footer>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/add-problem-modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard-ui.js') }}"></script>
+{% endblock %}

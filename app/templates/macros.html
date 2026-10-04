@@ -1,0 +1,77 @@
+{% macro icon(name, class='') -%}
+<i data-lucide="{{ name }}" class="icon{% if class %} {{ class }}{% endif %}" aria-hidden="true"></i>
+{%- endmacro %}
+
+{% macro bookmark_button(slug, bookmarked, next_url, problem_name='', large=false) -%}
+<form method="post" action="{{ url_for('main.toggle_bookmark', slug=slug) }}" class="bookmark-form" onclick="event.stopPropagation()">
+  <input type="hidden" name="next" value="{{ next_url }}">
+  <button
+    type="submit"
+    class="star-btn{% if large %} star-btn-lg{% endif %}{% if bookmarked %} is-on{% endif %}"
+    title="{% if bookmarked %}Remove bookmark{% else %}Bookmark{% endif %}"
+    aria-label="{% if bookmarked %}Remove bookmark{% else %}Bookmark{% endif %}{% if problem_name %} {{ problem_name }}{% endif %}"
+  >
+    {{ icon('star', 'icon-star' + (' is-filled' if bookmarked else '')) }}
+    {% if large %}
+    <span>{% if bookmarked %}Bookmarked{% else %}Bookmark{% endif %}</span>
+    {% endif %}
+  </button>
+</form>
+{%- endmacro %}
+
+{% macro status_badge(status, label, icon_only=false) -%}
+<span
+  class="status-badge status-badge-{{ status }}{% if icon_only %} status-badge-icon{% endif %}"
+  title="{{ label }}"
+  aria-label="{{ label }}"
+>
+  {% if status == 'done' %}
+    {{ icon('check', 'status-icon') }}
+  {% elif status == 'attempted' %}
+    {{ icon('circle-dot', 'status-icon') }}
+  {% else %}
+    {{ icon('circle', 'status-icon') }}
+  {% endif %}
+  {% if icon_only %}
+  <span class="sr-only">{{ label }}</span>
+  {% else %}
+  <span>{{ label }}</span>
+  {% endif %}
+</span>
+{%- endmacro %}
+
+{% macro leetcode_icon_link(url, name) -%}
+<a class="leetcode-link" href="{{ url }}" target="_blank" rel="noopener" title="Open {{ name }} on LeetCode" aria-label="Open {{ name }} on LeetCode" onclick="event.stopPropagation()">
+  <img
+    class="leetcode-icon"
+    src="{{ url_for('static', filename='icons/leetcode.svg') }}"
+    alt=""
+    width="18"
+    height="18"
+    decoding="async"
+  >
+</a>
+{%- endmacro %}
+
+{% macro contest_calendar_menu(contest, compact=false) -%}
+<details class="cal-menu{% if compact %} cal-menu-compact{% endif %}">
+  <summary class="btn btn-ghost btn-icon cal-menu-trigger" aria-label="Add {{ contest.title }} to calendar">
+    {{ icon('calendar-plus') }}
+    {% if not compact %}<span>Add to calendar</span>{% endif %}
+  </summary>
+  <div class="cal-menu-panel" role="menu">
+    <a class="cal-menu-item" role="menuitem" href="{{ contest.calendar.google }}" target="_blank" rel="noopener">
+      {{ icon('calendar') }}<span>Google Calendar</span>
+    </a>
+    <a class="cal-menu-item" role="menuitem" href="{{ contest.calendar.outlook }}" target="_blank" rel="noopener">
+      {{ icon('calendar-days') }}<span>Outlook</span>
+    </a>
+    <a class="cal-menu-item" role="menuitem" href="{{ contest.calendar.outlook_office }}" target="_blank" rel="noopener">
+      {{ icon('building-2') }}<span>Outlook 365</span>
+    </a>
+    <a class="cal-menu-item" role="menuitem" href="{{ url_for('main.contest_ics', slug=contest.slug) }}">
+      {{ icon('download') }}<span>Download .ics</span>
+    </a>
+  </div>
+</details>
+{%- endmacro %}

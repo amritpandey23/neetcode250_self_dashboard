@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}Roadmap · NeetCode 250{% endblock %}
+{% block content %}
+<section class="roadmap-page">
+  <header class="roadmap-hero">
+    <div>
+      <p class="section-label">Learning path</p>
+      <h1>Roadmap</h1>
+      <p class="lede">
+        {{ overall.solved }} / {{ overall.total }} solved overall.
+        {% if current_node %}Current focus: <strong>{{ current_node }}</strong>.{% endif %}
+        Hover a topic to trace its path from the root.
+      </p>
+    </div>
+    <div class="roadmap-legend" aria-label="Node states">
+      <span><i class="legend-dot legend-complete"></i> Completed</span>
+      <span><i class="legend-dot legend-current"></i> Current</span>
+      <span><i class="legend-dot legend-upcoming"></i> Upcoming</span>
+    </div>
+  </header>
+
+  <div class="roadmap-board-wrap" id="roadmap-wrap">
+    <div class="roadmap-board" id="roadmap-board" style="--node-w: {{ node_w }}px; --node-h: {{ node_h }}px; transform: scale(1);">
+      <svg class="roadmap-edges" viewBox="0 0 1000 1200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        {% for edge in edges %}
+        <path
+          d="{{ edge.path }}"
+          class="roadmap-edge"
+          data-from="{{ edge.source }}"
+          data-to="{{ edge.target }}"
+        ></path>
+        {% endfor %}
+      </svg>
+
+      {% for node in nodes %}
+      <a
+        class="roadmap-node is-{{ node.state }} {% if node.is_here %}is-here{% endif %}"
+        href="{{ url_for('main.problems', category=node.name) }}"
+        data-name="{{ node.name }}"
+        style="left: {{ node.x }}px; top: {{ node.y }}px; width: {{ node.width }}px; height: {{ node.height }}px;"
+        title="{{ node.name }} · {{ node.done }}/{{ node.total }}"
+      >
+        <span class="roadmap-node-state">
+          {% if node.state == 'complete' %}{{ icon('check') }}
+          {% elif node.is_here %}{{ icon('circle-dot') }}
+          {% else %}{{ icon('circle') }}
+          {% endif %}
+        </span>
+        <span class="roadmap-node-title">{{ node.name }}</span>
+        <span class="roadmap-node-meta mono">{{ node.done }} / {{ node.total }}</span>
+        <span class="roadmap-node-bar" aria-hidden="true">
+          <span class="roadmap-node-bar-fill" style="width: {{ node.percent }}%"></span>
+        </span>
+        {% if node.is_here %}
+        <span class="roadmap-here-label">You are here</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="roadmap-controls" aria-label="Roadmap zoom controls">
+      <button type="button" class="roadmap-ctrl" id="roadmap-zoom-in" aria-label="Zoom in">{{ icon('plus') }}</button>
+      <button type="button" class="roadmap-ctrl" id="roadmap-zoom-out" aria-label="Zoom out">{{ icon('minus') }}</button>
+      <button type="button" class="roadmap-ctrl" id="roadmap-fit" aria-label="Fit to screen">{{ icon('maximize-2') }}</button>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/roadmap.js') }}"></script>
+{% endblock %}
