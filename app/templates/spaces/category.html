@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, reorder_buttons %}
+{% block title %}
+{% if category %}{{ category.name }} · {% endif %}{{ space.name }} · Spaces
+{% endblock %}
+{% block content %}
+<div class="dash-layout spaces-layout">
+  <button type="button" class="sidebar-toggle btn btn-ghost btn-icon" id="sidebar-toggle" aria-expanded="false" aria-controls="category-sidebar">
+    {{ icon('panel-left') }}<span>Categories</span>
+  </button>
+
+  {% include "spaces/_sidebar.html" %}
+
+  <div class="dash-main">
+    {% if category %}
+    <section class="dash-hero dash-hero-category spaces-hero">
+      <div class="hero-copy">
+        <p class="section-label">Category</p>
+        <h1>{{ category.name }}</h1>
+        <p class="muted">{{ entry_counts.get(category.id, 0) }} entr{{ 'y' if entry_counts.get(category.id, 0) == 1 else 'ies' }}</p>
+      </div>
+      <div class="spaces-hero-actions">
+        <a class="btn btn-primary btn-icon" href="{{ url_for('docs.new_entry', space_slug=space.slug, category_id=category.id) }}">
+          {{ icon('file-plus') }}<span>New entry</span>
+        </a>
+        <details class="spaces-menu">
+          <summary class="btn btn-ghost btn-icon">{{ icon('settings-2') }}<span>Manage</span></summary>
+          <div class="spaces-menu-panel">
+            <form method="post" action="{{ url_for('docs.rename_category', space_slug=space.slug, category_id=category.id) }}" class="spaces-inline-rename">
+              <input type="text" name="name" value="{{ category.name }}" maxlength="200" required aria-label="Rename category">
+              <button class="btn btn-ghost btn-icon" type="submit">{{ icon('pencil') }}<span>Rename</span></button>
+            </form>
+            <form method="post" action="{{ url_for('docs.delete_category', space_slug=space.slug, category_id=category.id) }}" onsubmit="return confirm({{ ('Delete category “' ~ category.name ~ '” and all of its sections and entries?')|tojson }});">
+              <button class="btn btn-danger-ghost btn-icon" type="submit">{{ icon('trash-2') }}<span>Delete</span></button>
+            </form>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <form class="spaces-create-row" method="post" action="{{ url_for('docs.create_section', space_slug=space.slug) }}">
+      <input type="hidden" name="category_id" value="{{ category.id }}">
+      <label class="sr-only" for="new-section-name">New section</label>
+      <input id="new-section-name" name="name" type="text" maxlength="200" required placeholder="New section name…">
+      <button class="btn btn-ghost btn-icon" type="submit">{{ icon('folder-plus') }}<span>Add section</span></button>
+    </form>
+
+    {% if unsectioned %}
+    <section class="category-group">
+      <header class="category-group-head">
+        <h2>Entries</h2>
+        <span class="mono muted">{{ unsectioned|length }}</span>
+      </header>
+      <div class="problem-list doc-entry-problem-list" role="list">
+        {% for entry in unsectioned %}
+        {% set preview_url = url_for('docs.entry', space_slug=space.slug, cat_slug=category.slug, entry_slug=entry.slug) %}
+        <article class="problem-row doc-entry-list-row" role="listitem" data-href="{{ preview_url }}" tabindex="0">
+          <span class="doc-entry-list-icon" aria-hidden="true">{{ icon('file-text') }}</span>
+          <a class="problem-name" href="{{ preview_url }}">{{ entry.title }}</a>
+          <div class="problem-row-end">
+            {% if entry.updated_at %}
+            <span class="muted mono">{{ entry.updated_at.strftime('%Y-%m-%d') }}</span>
+            {% endif %}
+            <div class="doc-entry-tools" onclick="event.stopPropagation()">
+              {{ reorder_buttons(url_for('docs.reorder_entry', space_slug=space.slug, entry_id=entry.id)) }}
+              <form method="post" action="{{ url_for('docs.delete_entry', space_slug=space.slug, entry_id=entry.id) }}" onsubmit="return confirm({{ ('Delete entry “' ~ entry.title ~ '”?')|tojson }});">
+                <button type="submit" class="md-btn" title="Delete entry" aria-label="Delete entry">{{ icon('trash-2') }}</button>
+              </form>
+            </div>
+            <span class="row-chevron" aria-hidden="true">{{ icon('chevron-right') }}</span>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% for section in sections %}
+    {% set entries = section_entries.get(section.id, []) %}
+    <section class="category-group">
+      <header class="category-group-head doc-section-head">
+        <h2>{{ section.name }}</h2>
+        <div class="doc-group-tools">
+          <span class="mono muted">{{ entries|length }}</span>
+          {{ reorder_buttons(url_for('docs.reorder_section', space_slug=space.slug, section_id=section.id)) }}
+          <a class="btn btn-ghost btn-icon" href="{{ url_for('docs.new_entry', space_slug=space.slug, category_id=category.id, section_id=section.id) }}">
+            {{ icon('file-plus') }}<span>Entry</span>
+          </a>
+          <details class="spaces-menu">
+            <summary class="md-btn" title="Section actions">{{ icon('ellipsis') }}</summary>
+            <div class="spaces-menu-panel">
+              <form method="post" action="{{ url_for('docs.rename_section', space_slug=space.slug, section_id=section.id) }}" class="spaces-inline-rename">
+                <input type="text" name="name" value="{{ section.name }}" maxlength="200" required aria-label="Rename section">
+                <button class="btn btn-ghost btn-icon" type="submit">{{ icon('pencil') }}<span>Rename</span></button>
+              </form>
+              <form method="post" action="{{ url_for('docs.delete_section', space_slug=space.slug, section_id=section.id) }}" onsubmit="return confirm({{ ('Delete section “' ~ section.name ~ '” and its entries?')|tojson }});">
+                <button class="btn btn-danger-ghost btn-icon" type="submit">{{ icon('trash-2') }}<span>Delete</span></button>
+              </form>
+            </div>
+          </details>
+        </div>
+      </header>
+      {% if entries %}
+      <div class="problem-list doc-entry-problem-list" role="list">
+        {% for entry in entries %}
+        {% set preview_url = url_for('docs.entry', space_slug=space.slug, cat_slug=category.slug, entry_slug=entry.slug) %}
+        <article class="problem-row doc-entry-list-row" role="listitem" data-href="{{ preview_url }}" tabindex="0">
+          <span class="doc-entry-list-icon" aria-hidden="true">{{ icon('file-text') }}</span>
+          <a class="problem-name" href="{{ preview_url }}">{{ entry.title }}</a>
+          <div class="problem-row-end">
+            {% if entry.updated_at %}
+            <span class="muted mono">{{ entry.updated_at.strftime('%Y-%m-%d') }}</span>
+            {% endif %}
+            <div class="doc-entry-tools" onclick="event.stopPropagation()">
+              {{ reorder_buttons(url_for('docs.reorder_entry', space_slug=space.slug, entry_id=entry.id)) }}
+              <form method="post" action="{{ url_for('docs.delete_entry', space_slug=space.slug, entry_id=entry.id) }}" onsubmit="return confirm({{ ('Delete entry “' ~ entry.title ~ '”?')|tojson }});">
+                <button type="submit" class="md-btn" title="Delete entry" aria-label="Delete entry">{{ icon('trash-2') }}</button>
+              </form>
+            </div>
+            <span class="row-chevron" aria-hidden="true">{{ icon('chevron-right') }}</span>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="muted doc-group-empty">No entries in this section yet.</p>
+      {% endif %}
+    </section>
+    {% endfor %}
+
+    {% if not unsectioned and not sections %}
+    <div class="spaces-empty">
+      <p>This category is empty. Add a section or create an entry.</p>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <section class="dash-hero dash-hero-category">
+      <div class="hero-copy">
+        <p class="section-label">Space</p>
+        <h1>{{ space.name }}</h1>
+        <p class="muted">Create a category in the sidebar to start adding documents.</p>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard-ui.js') }}"></script>
+<script src="{{ url_for('static', filename='js/doc-list.js') }}"></script>
+{% endblock %}

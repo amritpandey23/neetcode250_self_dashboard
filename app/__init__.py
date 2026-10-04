@@ -28,10 +28,12 @@ def create_app(config_class=Config):
         return db.session.get(User, int(user_id))
 
     from app.auth import auth_bp
+    from app.docs import docs_bp
     from app.routes import main_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
+    app.register_blueprint(docs_bp)
 
     with app.app_context():
         db.create_all()

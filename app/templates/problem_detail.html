@@ -159,6 +159,74 @@
     </section>
   </form>
 
+  <section class="linked-docs-panel" aria-labelledby="linked-docs-label">
+    <div class="linked-docs-head">
+      <div>
+        <p class="section-label" id="linked-docs-label">Linked documents</p>
+        <p class="notes-hint muted">Attach Spaces entries for reference while solving</p>
+      </div>
+      <a class="btn btn-ghost btn-icon" href="{{ url_for('docs.index') }}">
+        {{ icon('file-text') }}<span>Spaces</span>
+      </a>
+    </div>
+
+    {% if linked_entries %}
+    <ul class="linked-docs-list">
+      {% for item in linked_entries %}
+      <li class="linked-docs-item">
+        <a class="linked-docs-link" href="{{ item.url }}">
+          <span class="linked-docs-icon" aria-hidden="true">{{ icon('file-text') }}</span>
+          <span class="linked-docs-text">
+            <strong>{{ item.entry.title }}</strong>
+            <small class="muted">{{ item.path }}</small>
+          </span>
+        </a>
+        <form
+          method="post"
+          action="{{ url_for('main.unlink_problem_entry', slug=problem.slug, link_id=item.link.id) }}"
+          class="linked-docs-unlink"
+        >
+          <input type="hidden" name="next" value="{{ url_for('main.problem_detail', slug=problem.slug, next=back_url) }}">
+          <button class="linked-docs-unlink-btn" type="submit" title="Unlink {{ item.entry.title }}" aria-label="Unlink {{ item.entry.title }}">
+            {{ icon('x') }}
+          </button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="linked-docs-empty muted">No Spaces entries linked yet.</p>
+    {% endif %}
+
+    {% if entry_options %}
+    <form
+      class="linked-docs-form"
+      method="post"
+      action="{{ url_for('main.link_problem_entry', slug=problem.slug) }}"
+    >
+      <input type="hidden" name="next" value="{{ url_for('main.problem_detail', slug=problem.slug, next=back_url) }}">
+      <label class="sr-only" for="link-entry-select">Choose a Spaces entry</label>
+      <select name="entry_id" id="link-entry-select" required>
+        <option value="" disabled selected>Select a Spaces entry…</option>
+        {% for opt in entry_options %}
+        <option value="{{ opt.id }}">{{ opt.label }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-primary btn-icon" type="submit">
+        {{ icon('link') }}<span>Link entry</span>
+      </button>
+    </form>
+    {% else %}
+    <p class="linked-docs-hint muted">
+      {% if linked_entries %}
+      All of your Spaces entries are already linked.
+      {% else %}
+      Create an entry in <a href="{{ url_for('docs.index') }}">Spaces</a> to link it here.
+      {% endif %}
+    </p>
+    {% endif %}
+  </section>
+
   {% if progress and (progress.status != 'todo' or progress.notes or progress.solve_count or progress.last_practiced_at) %}
   <form
     class="reset-progress-form"
@@ -307,7 +375,7 @@
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
-<script src="{{ url_for('static', filename='js/notes-editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/markdown-editor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/problem-detail.js') }}"></script>
 <script src="{{ url_for('static', filename='js/ai-chat.js') }}"></script>
 {% endblock %}

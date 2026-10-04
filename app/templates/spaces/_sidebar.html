@@ -1,0 +1,82 @@
+{% from "macros.html" import icon, reorder_buttons %}
+<aside class="category-sidebar" id="category-sidebar" aria-label="Space categories and entries">
+  <div class="sidebar-head">
+    <p class="section-label">Space</p>
+    <a class="sidebar-space-link" href="{{ url_for('docs.index') }}">{{ icon('arrow-left') }}<span>All spaces</span></a>
+    <h2 class="sidebar-space-name">{{ space.name }}</h2>
+  </div>
+
+  <form class="spaces-sidebar-create" method="post" action="{{ url_for('docs.create_category', space_slug=space.slug) }}">
+    <label class="sr-only" for="new-category-name">New category</label>
+    <input id="new-category-name" name="name" type="text" maxlength="200" required placeholder="New category…">
+    <button class="btn btn-ghost btn-icon" type="submit" title="Add category">{{ icon('plus') }}</button>
+  </form>
+
+  <nav class="sidebar-nav spaces-sidebar-nav">
+    {% for cat in categories %}
+    {% set tree = category_trees.get(cat.id, {}) %}
+    {% set is_active_cat = active_category and active_category.id == cat.id %}
+    <div class="spaces-cat-block {% if is_active_cat %}is-open{% endif %}">
+      <div class="sidebar-link-row {% if is_active_cat and not active_entry %}is-active{% endif %}">
+        <a class="sidebar-link" href="{{ url_for('docs.category', space_slug=space.slug, cat_slug=cat.slug) }}">
+          <span class="sidebar-link-text">{{ cat.name }}</span>
+          <span class="mono sidebar-count">{{ entry_counts.get(cat.id, 0) }}</span>
+        </a>
+        <div class="sidebar-link-tools">
+          {{ reorder_buttons(
+            url_for('docs.reorder_category', space_slug=space.slug, category_id=cat.id),
+            url_for('docs.category', space_slug=space.slug, cat_slug=cat.slug) if is_active_cat else url_for('docs.space_home', space_slug=space.slug)
+          ) }}
+        </div>
+      </div>
+
+      {% if tree.unsectioned or tree.sections %}
+      <div class="spaces-entry-tree">
+        {% if tree.unsectioned %}
+        <ul class="spaces-entry-nav">
+          {% for entry in tree.unsectioned %}
+          <li>
+            <a
+              class="spaces-entry-nav-link {% if active_entry and active_entry.id == entry.id %}is-active{% endif %}"
+              href="{{ url_for('docs.entry', space_slug=space.slug, cat_slug=cat.slug, entry_slug=entry.slug) }}"
+            >
+              {{ icon('file-text') }}
+              <span>{{ entry.title }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% for section in tree.sections %}
+        {% set entries = tree.section_entries.get(section.id, []) %}
+        <div class="spaces-entry-section">
+          <p class="spaces-entry-section-label">{{ section.name }}</p>
+          {% if entries %}
+          <ul class="spaces-entry-nav">
+            {% for entry in entries %}
+            <li>
+              <a
+                class="spaces-entry-nav-link {% if active_entry and active_entry.id == entry.id %}is-active{% endif %}"
+                href="{{ url_for('docs.entry', space_slug=space.slug, cat_slug=cat.slug, entry_slug=entry.slug) }}"
+              >
+                {{ icon('file-text') }}
+                <span>{{ entry.title }}</span>
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="spaces-entry-nav-empty muted">No entries</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="sidebar-empty muted">No categories yet.</p>
+    {% endfor %}
+  </nav>
+</aside>
+<div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>

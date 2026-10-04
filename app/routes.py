@@ -18,7 +18,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.gemini import GeminiError, chat as gemini_chat
-from app.models import Problem, Progress
+from app.models import DocCategory, DocEntry, Problem, ProblemEntryLink, Progress, Space
 from app.schema import AGING_MAX_SOLVES, AGING_WEEKS
 
 main_bp = Blueprint("main", __name__)
@@ -549,6 +549,72 @@ def add_problem():
     return redirect(next_url)
 
 
+def _user_entry_options(user_id, exclude_entry_ids=None):
+    """Flat selectable list of the user's Spaces entries with path labels."""
+    exclude = set(exclude_entry_ids or [])
+    rows = (
+        db.session.query(DocEntry, DocCategory, Space)
+        .join(DocCategory, DocEntry.category_id == DocCategory.id)
+        .join(Space, DocCategory.space_id == Space.id)
+        .filter(Space.user_id == user_id)
+        .order_by(Space.order_index.asc(), Space.name.asc(),
+                  DocCategory.order_index.asc(), DocCategory.name.asc(),
+                  DocEntry.order_index.asc(), DocEntry.title.asc())
+        .all()
+    )
+    options = []
+    for entry, category, space in rows:
+        if entry.id in exclude:
+            continue
+        section_bit = f" / {entry.section.name}" if entry.section else ""
+        options.append(
+            {
+                "id": entry.id,
+                "label": f"{space.name} / {category.name}{section_bit} / {entry.title}",
+                "entry": entry,
+                "category": category,
+                "space": space,
+            }
+        )
+    return options
+
+
+def _problem_entry_links(user_id, problem_id):
+    links = (
+        ProblemEntryLink.query.filter_by(user_id=user_id, problem_id=problem_id)
+        .order_by(ProblemEntryLink.created_at.asc())
+        .all()
+    )
+    enriched = []
+    for link in links:
+        entry = link.entry
+        if not entry or not entry.category or not entry.category.space:
+            continue
+        if entry.category.space.user_id != user_id:
+            continue
+        space = entry.category.space
+        category = entry.category
+        enriched.append(
+            {
+                "link": link,
+                "entry": entry,
+                "space": space,
+                "category": category,
+                "url": url_for(
+                    "docs.entry",
+                    space_slug=space.slug,
+                    cat_slug=category.slug,
+                    entry_slug=entry.slug,
+                ),
+                "path": (
+                    f"{space.name} / {category.name}"
+                    + (f" / {entry.section.name}" if entry.section else "")
+                ),
+            }
+        )
+    return enriched
+
+
 @main_bp.route("/problem/<slug>", methods=["GET", "POST"])
 @login_required
 def problem_detail(slug):
@@ -607,6 +673,10 @@ def problem_detail(slug):
         .first()
     )
 
+    linked_entries = _problem_entry_links(current_user.id, problem.id)
+    linked_ids = {item["entry"].id for item in linked_entries}
+    entry_options = _user_entry_options(current_user.id, exclude_entry_ids=linked_ids)
+
     gemini_configured = bool(current_app.config.get("GEMINI_API_KEY"))
     return render_template(
         "problem_detail.html",
@@ -623,7 +693,73 @@ def problem_detail(slug):
         aging_max_solves=AGING_MAX_SOLVES,
         gemini_configured=gemini_configured,
         gemini_model=current_app.config.get("GEMINI_MODEL", "gemini-2.5-flash"),
+        linked_entries=linked_entries,
+        entry_options=entry_options,
     )
+
+
+@main_bp.route("/problem/<slug>/link-entry", methods=["POST"])
+@login_required
+def link_problem_entry(slug):
+    problem = Problem.query.filter_by(slug=slug).first_or_404()
+    next_url = _safe_next_url(
+        request.form.get("next"),
+        url_for("main.problem_detail", slug=slug),
+    )
+    entry_id = request.form.get("entry_id", type=int)
+    if not entry_id:
+        flash("Choose a Spaces entry to link.", "error")
+        return redirect(next_url)
+
+    entry = (
+        DocEntry.query.join(DocCategory)
+        .join(Space)
+        .filter(DocEntry.id == entry_id, Space.user_id == current_user.id)
+        .first()
+    )
+    if not entry:
+        flash("That Spaces entry was not found.", "error")
+        return redirect(next_url)
+
+    existing = ProblemEntryLink.query.filter_by(
+        user_id=current_user.id,
+        problem_id=problem.id,
+        entry_id=entry.id,
+    ).first()
+    if existing:
+        flash("That entry is already linked.", "info")
+        return redirect(next_url)
+
+    db.session.add(
+        ProblemEntryLink(
+            user_id=current_user.id,
+            problem_id=problem.id,
+            entry_id=entry.id,
+        )
+    )
+    db.session.commit()
+    flash(f"Linked “{entry.title}”.", "success")
+    return redirect(next_url)
+
+
+@main_bp.route("/problem/<slug>/unlink-entry/<int:link_id>", methods=["POST"])
+@login_required
+def unlink_problem_entry(slug, link_id):
+    problem = Problem.query.filter_by(slug=slug).first_or_404()
+    next_url = _safe_next_url(
+        request.form.get("next"),
+        url_for("main.problem_detail", slug=slug),
+    )
+    link = ProblemEntryLink.query.filter_by(
+        id=link_id,
+        user_id=current_user.id,
+        problem_id=problem.id,
+    ).first_or_404()
+    title = link.entry.title if link.entry else "entry"
+    db.session.delete(link)
+    db.session.commit()
+    flash(f"Unlinked “{title}”.", "success")
+    return redirect(next_url)
 
 
 @main_bp.route("/problem/<slug>/chat", methods=["POST"])

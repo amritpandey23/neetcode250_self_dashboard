@@ -6,16 +6,28 @@
   const attempted = JSON.parse(canvas.dataset.attempted || "[]");
   const done = JSON.parse(canvas.dataset.done || "[]");
 
-  const styles = getComputedStyle(document.documentElement);
-  const accent = styles.getPropertyValue("--accent").trim() || "#0f766e";
-  const medium = styles.getPropertyValue("--medium").trim() || "#b45309";
-  const muted = styles.getPropertyValue("--muted").trim() || "#6b7280";
-  const line = styles.getPropertyValue("--line").trim() || "#e5e7eb";
-
   // Keep ticks readable for longer ranges.
   const maxTicks = labels.length > 30 ? 8 : labels.length > 14 ? 10 : labels.length;
 
-  new Chart(canvas, {
+  function themeColors() {
+    const styles = getComputedStyle(document.documentElement);
+    const read = (name, fallback) =>
+      styles.getPropertyValue(name).trim() || fallback;
+    return {
+      accent: read("--accent", "#0f766e"),
+      medium: read("--medium", "#b45309"),
+      muted: read("--muted", "#6b7280"),
+      line: read("--line", "#e5e7eb"),
+      grid: read("--chart-grid", "rgba(17, 24, 39, 0.06)"),
+      tooltip: read("--tooltip-bg", "#111827"),
+      mediumFill: read("--medium-bg", "rgba(180, 83, 9, 0.12)"),
+      accentFill: read("--accent-soft", "rgba(15, 118, 110, 0.12)"),
+    };
+  }
+
+  const colors = themeColors();
+
+  const chart = new Chart(canvas, {
     type: "line",
     data: {
       labels,
@@ -23,8 +35,8 @@
         {
           label: "Attempted",
           data: attempted,
-          borderColor: medium,
-          backgroundColor: "rgba(180, 83, 9, 0.12)",
+          borderColor: colors.medium,
+          backgroundColor: colors.mediumFill,
           fill: false,
           tension: 0.25,
           pointRadius: labels.length > 40 ? 0 : 2.5,
@@ -34,8 +46,8 @@
         {
           label: "Solved",
           data: done,
-          borderColor: accent,
-          backgroundColor: "rgba(15, 118, 110, 0.12)",
+          borderColor: colors.accent,
+          backgroundColor: colors.accentFill,
           fill: false,
           tension: 0.25,
           pointRadius: labels.length > 40 ? 0 : 2.5,
@@ -51,7 +63,7 @@
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: "#111827",
+          backgroundColor: colors.tooltip,
           titleFont: { family: "Outfit", size: 12 },
           bodyFont: { family: "Outfit", size: 12 },
           padding: 10,
@@ -62,24 +74,42 @@
         x: {
           grid: { display: false },
           ticks: {
-            color: muted,
+            color: colors.muted,
             font: { family: "Outfit", size: 11 },
             maxTicksLimit: maxTicks,
             maxRotation: 0,
           },
-          border: { color: line },
+          border: { color: colors.line },
         },
         y: {
           beginAtZero: true,
           ticks: {
-            color: muted,
+            color: colors.muted,
             font: { family: "Outfit", size: 11 },
             precision: 0,
           },
-          grid: { color: "rgba(17, 24, 39, 0.06)" },
+          grid: { color: colors.grid },
           border: { display: false },
         },
       },
     },
   });
+
+  function refreshChartTheme() {
+    const next = themeColors();
+    const attemptedDs = chart.data.datasets[0];
+    const doneDs = chart.data.datasets[1];
+    attemptedDs.borderColor = next.medium;
+    attemptedDs.backgroundColor = next.mediumFill;
+    doneDs.borderColor = next.accent;
+    doneDs.backgroundColor = next.accentFill;
+    chart.options.plugins.tooltip.backgroundColor = next.tooltip;
+    chart.options.scales.x.ticks.color = next.muted;
+    chart.options.scales.x.border.color = next.line;
+    chart.options.scales.y.ticks.color = next.muted;
+    chart.options.scales.y.grid.color = next.grid;
+    chart.update("none");
+  }
+
+  document.addEventListener("themechange", refreshChartTheme);
 })();

@@ -22,12 +22,16 @@
 - Contests page + dashboard preview (upcoming weekly/biweekly from LeetCode)
 - Dashboard cumulative progress line chart (1W/2W/1M/3M)
 - Overview Dashboard separated from Problems browser (`/problems`)
+- Document Spaces (CRUD, sidebar entry tree, preview/edit, shared markdown editor)
+- AI Coach chat on problem detail (Gemini)
+- Link Spaces entries to problems (`ProblemEntryLink` + problem page UI)
+- Dark/light theme toggle with tokenized CSS + chart/mermaid sync
 
 ## Left / nice-to-have
 - Soft delete / account settings
 - Keyboard shortcuts
-- Dark mode toggle
 - Import/export notes
+- Pass linked Spaces entries into AI Coach context
 
 ## Known issues
-- None observed for the latest dashboard/list/reset pass
+- None observed for the latest theme toggle pass

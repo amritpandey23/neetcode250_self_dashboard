@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}{{ entry.title }} · {{ category.name }} · {{ space.name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="dash-layout spaces-layout">
+  <button type="button" class="sidebar-toggle btn btn-ghost btn-icon" id="sidebar-toggle" aria-expanded="false" aria-controls="category-sidebar">
+    {{ icon('panel-left') }}<span>Categories</span>
+  </button>
+
+  {% include "spaces/_sidebar.html" %}
+
+  <div class="dash-main">
+    <nav class="doc-breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ url_for('docs.index') }}">Spaces</a>
+      <span class="meta-sep" aria-hidden="true">/</span>
+      <a href="{{ url_for('docs.space_home', space_slug=space.slug) }}">{{ space.name }}</a>
+      <span class="meta-sep" aria-hidden="true">/</span>
+      <a href="{{ url_for('docs.category', space_slug=space.slug, cat_slug=category.slug) }}">{{ category.name }}</a>
+      {% if section %}
+      <span class="meta-sep" aria-hidden="true">/</span>
+      <span>{{ section.name }}</span>
+      {% endif %}
+    </nav>
+
+    <header class="doc-preview-header">
+      <div>
+        <p class="section-label">Entry</p>
+        <h1 class="doc-preview-title">{{ entry.title }}</h1>
+        {% if entry.updated_at %}
+        <p class="muted">Updated {{ entry.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC</p>
+        {% endif %}
+      </div>
+      <div class="doc-preview-actions">
+        <a class="btn btn-ghost btn-icon" href="{{ url_for('docs.category', space_slug=space.slug, cat_slug=category.slug) }}">
+          {{ icon('arrow-left') }}<span>Back to list</span>
+        </a>
+        <a class="btn btn-primary btn-icon" href="{{ url_for('docs.edit_entry', space_slug=space.slug, cat_slug=category.slug, entry_slug=entry.slug) }}">
+          {{ icon('pen-line') }}<span>Edit</span>
+        </a>
+      </div>
+    </header>
+
+    <article class="doc-preview-body">
+      <textarea id="doc-preview-source" class="sr-only" readonly hidden>{{ entry.body or '' }}</textarea>
+      <div id="doc-preview" class="md-preview markdown-body doc-preview-render"></div>
+    </article>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked@13.0.3/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard-ui.js') }}"></script>
+<script src="{{ url_for('static', filename='js/doc-preview.js') }}"></script>
+{% endblock %}

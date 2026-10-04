@@ -4,6 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}NeetCode 250{% endblock %}</title>
+  <script>
+    (function () {
+      try {
+        var key = "neetcode-theme";
+        var stored = localStorage.getItem(key);
+        var theme = stored === "dark" || stored === "light"
+          ? stored
+          : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.style.colorScheme = theme;
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+  </script>
   <link rel="icon" href="{{ url_for('static', filename='icons/favicon.svg') }}" type="image/svg+xml">
   <link rel="icon" href="{{ url_for('static', filename='icons/favicon.ico') }}" sizes="any">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
@@ -22,12 +37,10 @@
       <span class="brand-text">NeetCode 250</span>
     </a>
     {% if current_user.is_authenticated %}
-    <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav">
-      {{ icon('menu') }}
-    </button>
     <nav class="site-nav" id="site-nav">
       <a class="nav-link {% if endpoint == 'main.dashboard' %}is-active{% endif %}" href="{{ url_for('main.dashboard') }}">{{ icon('layout-dashboard') }}<span>Dashboard</span></a>
       <a class="nav-link {% if endpoint in ['main.problems', 'main.problem_detail'] %}is-active{% endif %}" href="{{ url_for('main.problems') }}">{{ icon('list') }}<span>Problems</span></a>
+      <a class="nav-link {% if endpoint and endpoint.startswith('docs.') %}is-active{% endif %}" href="{{ url_for('docs.index') }}">{{ icon('library') }}<span>Spaces</span></a>
       <a class="nav-link {% if endpoint == 'main.roadmap' %}is-active{% endif %}" href="{{ url_for('main.roadmap') }}">{{ icon('route') }}<span>Roadmap</span></a>
       <a class="nav-link {% if endpoint == 'main.contests' %}is-active{% endif %}" href="{{ url_for('main.contests') }}">{{ icon('trophy') }}<span>Contests</span></a>
       <a class="nav-link {% if endpoint == 'main.aging' %}is-active{% endif %}" href="{{ url_for('main.aging') }}">{{ icon('hourglass') }}<span>Aging</span></a>
@@ -36,6 +49,17 @@
       <a class="btn btn-ghost btn-icon" href="{{ url_for('auth.logout') }}">{{ icon('log-out') }}<span>Logout</span></a>
     </nav>
     {% endif %}
+    <div class="site-header-end">
+      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle color theme" aria-pressed="false">
+        <span class="theme-icon-moon" aria-hidden="true">{{ icon('moon') }}</span>
+        <span class="theme-icon-sun" aria-hidden="true">{{ icon('sun') }}</span>
+      </button>
+      {% if current_user.is_authenticated %}
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav">
+        {{ icon('menu') }}
+      </button>
+      {% endif %}
+    </div>
   </header>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -62,6 +86,7 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
   <script>
     window.refreshIcons = function () {
       if (window.lucide && typeof window.lucide.createIcons === "function") {
@@ -78,6 +103,9 @@
           toggle.setAttribute("aria-expanded", open ? "true" : "false");
         });
       }
+    });
+    document.addEventListener("themechange", function () {
+      window.refreshIcons();
     });
   </script>
   <script src="{{ url_for('static', filename='js/toasts.js') }}"></script>

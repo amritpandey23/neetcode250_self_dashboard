@@ -21,6 +21,9 @@ class User(UserMixin, db.Model):
     progress_entries = db.relationship(
         "Progress", back_populates="user", cascade="all, delete-orphan"
     )
+    spaces = db.relationship(
+        "Space", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -70,3 +73,134 @@ class Progress(db.Model):
 
     user = db.relationship("User", back_populates="progress_entries")
     problem = db.relationship("Problem", back_populates="progress_entries")
+
+
+class Space(db.Model):
+    __tablename__ = "spaces"
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "slug", name="uq_space_user_slug"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(220), nullable=False, index=True)
+    order_index = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+
+    user = db.relationship("User", back_populates="spaces")
+    categories = db.relationship(
+        "DocCategory",
+        back_populates="space",
+        cascade="all, delete-orphan",
+        order_by="DocCategory.order_index",
+    )
+
+
+class DocCategory(db.Model):
+    __tablename__ = "doc_categories"
+    __table_args__ = (
+        db.UniqueConstraint("space_id", "slug", name="uq_doc_category_space_slug"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(db.Integer, db.ForeignKey("spaces.id"), nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(220), nullable=False, index=True)
+    order_index = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+
+    space = db.relationship("Space", back_populates="categories")
+    sections = db.relationship(
+        "DocSection",
+        back_populates="category",
+        cascade="all, delete-orphan",
+        order_by="DocSection.order_index",
+    )
+    entries = db.relationship(
+        "DocEntry",
+        back_populates="category",
+        cascade="all, delete-orphan",
+        order_by="DocEntry.order_index",
+    )
+
+
+class DocSection(db.Model):
+    __tablename__ = "doc_sections"
+    __table_args__ = (
+        db.UniqueConstraint("category_id", "slug", name="uq_doc_section_category_slug"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    category_id = db.Column(
+        db.Integer, db.ForeignKey("doc_categories.id"), nullable=False, index=True
+    )
+    name = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(220), nullable=False, index=True)
+    order_index = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+
+    category = db.relationship("DocCategory", back_populates="sections")
+    entries = db.relationship(
+        "DocEntry",
+        back_populates="section",
+        cascade="all, delete",
+        order_by="DocEntry.order_index",
+    )
+
+
+class DocEntry(db.Model):
+    __tablename__ = "doc_entries"
+    __table_args__ = (
+        db.UniqueConstraint("category_id", "slug", name="uq_doc_entry_category_slug"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    category_id = db.Column(
+        db.Integer, db.ForeignKey("doc_categories.id"), nullable=False, index=True
+    )
+    section_id = db.Column(
+        db.Integer, db.ForeignKey("doc_sections.id"), nullable=True, index=True
+    )
+    title = db.Column(db.String(300), nullable=False)
+    slug = db.Column(db.String(320), nullable=False, index=True)
+    body = db.Column(db.Text, default="")
+    order_index = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+
+    category = db.relationship("DocCategory", back_populates="entries")
+    section = db.relationship("DocSection", back_populates="entries")
+    problem_links = db.relationship(
+        "ProblemEntryLink",
+        back_populates="entry",
+        cascade="all, delete-orphan",
+    )
+
+
+class ProblemEntryLink(db.Model):
+    """Per-user link from a problem to a Spaces document entry."""
+
+    __tablename__ = "problem_entry_links"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id", "problem_id", "entry_id", name="uq_user_problem_entry_link"
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    problem_id = db.Column(
+        db.Integer, db.ForeignKey("problems.id"), nullable=False, index=True
+    )
+    entry_id = db.Column(
+        db.Integer, db.ForeignKey("doc_entries.id"), nullable=False, index=True
+    )
+    created_at = db.Column(db.DateTime, default=utcnow)
+
+    user = db.relationship("User")
+    problem = db.relationship("Problem")
+    entry = db.relationship("DocEntry", back_populates="problem_links")

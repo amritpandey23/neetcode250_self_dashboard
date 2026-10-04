@@ -10,6 +10,7 @@ Personal Flask dashboard to track NeetCode 250 progress, status, and notes. Data
 - Notes per problem
 - Filters: search, category, difficulty, status
 - Progress summary and category bars
+- **Spaces**: long-form private documents (categories → sections → markdown entries with LaTeX, Mermaid, code highlighting, YouTube embeds)
 
 ## Setup
 
@@ -31,8 +32,9 @@ Open [http://127.0.0.1:5001](http://127.0.0.1:5001), register an account, and st
 ```
 app/
   auth.py          # login / register / logout
-  models.py        # User, Problem, Progress
+  models.py        # User, Problem, Progress, Space/docs models
   routes.py        # dashboard + problem detail
+  docs.py          # Spaces / categories / sections / entries
   seed.py          # load JSON into SQLite
   templates/
   static/css/
@@ -40,6 +42,10 @@ config.py
 run.py
 neetcode_250_complete.json
 ```
+
+### Spaces
+
+Open **Spaces** in the nav to create topic workspaces (e.g. “Data Structures & Algorithms”). Each space has a category sidebar; categories hold sections and markdown entries. Entries support the same rich editor as problem notes, plus Mermaid diagrams and YouTube embeds (` ```youtube ` fences or bare YouTube URLs).
 
 SQLite DB path: `instance/neetcode.db`
 

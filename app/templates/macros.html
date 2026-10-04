@@ -53,6 +53,21 @@
 </a>
 {%- endmacro %}
 
+{% macro reorder_buttons(action_url, next_url='') -%}
+<span class="reorder-btns">
+  <form method="post" action="{{ action_url }}" class="inline-form">
+    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+    <input type="hidden" name="direction" value="up">
+    <button type="submit" class="md-btn" title="Move up" aria-label="Move up">{{ icon('chevron-up') }}</button>
+  </form>
+  <form method="post" action="{{ action_url }}" class="inline-form">
+    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+    <input type="hidden" name="direction" value="down">
+    <button type="submit" class="md-btn" title="Move down" aria-label="Move down">{{ icon('chevron-down') }}</button>
+  </form>
+</span>
+{%- endmacro %}
+
 {% macro contest_calendar_menu(contest, compact=false) -%}
 <details class="cal-menu{% if compact %} cal-menu-compact{% endif %}">
   <summary class="btn btn-ghost btn-icon cal-menu-trigger" aria-label="Add {{ contest.title }} to calendar">

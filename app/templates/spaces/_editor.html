@@ -1,0 +1,63 @@
+{# Shared markdown editor chrome. Expects: input_id, input_name, body_value, show_extended #}
+{% from "macros.html" import icon %}
+<div class="md-editor is-view" id="md-editor" data-mode="preview" data-extended="{{ '1' if show_extended else '0' }}">
+  <div class="md-toolbar" role="toolbar" aria-label="Document formatting">
+    <div class="md-toolbar-group">
+      <button type="button" class="md-btn" data-action="bold" title="Bold (Ctrl+B)">{{ icon('bold') }}</button>
+      <button type="button" class="md-btn" data-action="italic" title="Italic (Ctrl+I)">{{ icon('italic') }}</button>
+      <button type="button" class="md-btn" data-action="strike" title="Strikethrough">{{ icon('strikethrough') }}</button>
+    </div>
+    <div class="md-toolbar-group">
+      <button type="button" class="md-btn" data-action="h2" title="Heading">{{ icon('heading-2') }}</button>
+      <button type="button" class="md-btn" data-action="ul" title="Bullet list">{{ icon('list') }}</button>
+      <button type="button" class="md-btn" data-action="ol" title="Numbered list">{{ icon('list-ordered') }}</button>
+      <button type="button" class="md-btn" data-action="quote" title="Quote">{{ icon('quote') }}</button>
+    </div>
+    <div class="md-toolbar-group">
+      <button type="button" class="md-btn" data-action="code" title="Inline code">{{ icon('code') }}</button>
+      <button type="button" class="md-btn" data-action="codeblock" title="Code block">{{ icon('square-code') }}</button>
+      <button type="button" class="md-btn" data-action="link" title="Link">{{ icon('link') }}</button>
+      <button type="button" class="md-btn" data-action="table" title="Table">{{ icon('table') }}</button>
+    </div>
+    <div class="md-toolbar-group">
+      <button type="button" class="md-btn" data-action="math" title="Inline math">{{ icon('sigma') }}</button>
+      <button type="button" class="md-btn" data-action="mathblock" title="Block math">{{ icon('square-function') }}</button>
+      {% if show_extended %}
+      <button type="button" class="md-btn" data-action="mermaid" title="Mermaid diagram">{{ icon('git-branch') }}</button>
+      <button type="button" class="md-btn" data-action="youtube" title="YouTube embed">{{ icon('youtube') }}</button>
+      {% endif %}
+    </div>
+    <div class="md-toolbar-group md-toolbar-modes">
+      <button type="button" class="md-btn" data-mode="split" title="Split view">{{ icon('columns-2') }}</button>
+      <button type="button" class="md-btn" data-mode="write" title="Write only">{{ icon('pen') }}</button>
+      <button type="button" class="md-btn is-active" data-mode="preview" title="Preview only">{{ icon('eye') }}</button>
+    </div>
+  </div>
+
+  <div class="md-panes">
+    <div class="md-pane md-pane-write">
+      <label class="sr-only" for="{{ input_id }}">Document body</label>
+      <textarea
+        id="{{ input_id }}"
+        name="{{ input_name }}"
+        class="md-input"
+        spellcheck="true"
+        placeholder="Write your document in Markdown…
+
+## Heading
+
+- Notes
+- $O(n)$ math
+
+```python
+print('hello')
+```
+"
+      >{{ body_value }}</textarea>
+    </div>
+    <div class="md-pane md-pane-preview">
+      <div class="md-preview-label">Preview</div>
+      <div id="md-preview" class="md-preview markdown-body" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
