@@ -15,7 +15,7 @@
 
   {% include "spaces/_sidebar.html" %}
 
-  <div class="dash-main">
+  <div class="dash-main doc-workspace">
     <nav class="doc-breadcrumb" aria-label="Breadcrumb">
       <a href="{{ url_for('docs.index') }}">Spaces</a>
       <span class="meta-sep" aria-hidden="true">/</span>
@@ -29,16 +29,20 @@
     </nav>
 
     <header class="doc-preview-header">
-      <div>
-        <p class="section-label">Entry</p>
+      <div class="doc-preview-heading">
         <h1 class="doc-preview-title">{{ entry.title }}</h1>
         {% if entry.updated_at %}
-        <p class="muted">Updated {{ entry.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC</p>
+        <p class="muted doc-preview-updated">
+          Updated
+          <time datetime="{{ entry.updated_at.isoformat() }}" title="{{ entry.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC">
+            {{ entry.updated_at.strftime('%b %d, %Y') }}
+          </time>
+        </p>
         {% endif %}
       </div>
       <div class="doc-preview-actions">
         <a class="btn btn-ghost btn-icon" href="{{ url_for('docs.category', space_slug=space.slug, cat_slug=category.slug) }}">
-          {{ icon('arrow-left') }}<span>Back to list</span>
+          {{ icon('arrow-left') }}<span>Back</span>
         </a>
         <a class="btn btn-primary btn-icon" href="{{ url_for('docs.edit_entry', space_slug=space.slug, cat_slug=category.slug, entry_slug=entry.slug) }}">
           {{ icon('pen-line') }}<span>Edit</span>
@@ -46,10 +50,14 @@
       </div>
     </header>
 
-    <article class="doc-preview-body">
-      <textarea id="doc-preview-source" class="sr-only" readonly hidden>{{ entry.body or '' }}</textarea>
-      <div id="doc-preview" class="md-preview markdown-body doc-preview-render"></div>
-    </article>
+    <div class="doc-reading">
+      <article class="doc-preview-body">
+        <textarea id="doc-preview-source" class="sr-only" readonly hidden>{{ entry.body or '' }}</textarea>
+        <div id="doc-preview" class="md-preview markdown-body doc-preview-render"></div>
+      </article>
+
+      <nav class="doc-outline" id="doc-outline" hidden aria-label="On this page"></nav>
+    </div>
   </div>
 </div>
 {% endblock %}

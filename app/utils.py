@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone
 
 
 def slugify(text, fallback="item"):
@@ -40,3 +41,36 @@ def next_order_index(items):
     if not items:
         return 0
     return max(item.order_index for item in items) + 1
+
+
+def relative_past(dt, now=None):
+    """Human past relative label: Today, Yesterday, 3 days ago, 1 week ago, …"""
+    if dt is None:
+        return "—"
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+
+    if dt > now:
+        dt = now
+
+    day_delta = (now.date() - dt.astimezone(now.tzinfo).date()).days
+    if day_delta <= 0:
+        return "Today"
+    if day_delta == 1:
+        return "Yesterday"
+    if day_delta < 7:
+        return f"{day_delta} days ago"
+
+    weeks = day_delta // 7
+    if day_delta < 30:
+        return "1 week ago" if weeks == 1 else f"{weeks} weeks ago"
+
+    months = day_delta // 30
+    if day_delta < 365:
+        return "1 month ago" if months == 1 else f"{months} months ago"
+
+    years = day_delta // 365
+    return "1 year ago" if years == 1 else f"{years} years ago"

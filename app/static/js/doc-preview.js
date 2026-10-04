@@ -158,10 +158,62 @@
     },
   });
 
+  function slugifyHeading(text) {
+    return String(text || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 64);
+  }
+
+  function buildOutline() {
+    const outline = document.getElementById("doc-outline");
+    if (!outline) return;
+
+    const headings = [...root.querySelectorAll("h2, h3")];
+    if (headings.length < 2) {
+      outline.hidden = true;
+      outline.innerHTML = "";
+      return;
+    }
+
+    const used = new Set();
+    const items = headings.map((heading) => {
+      let id = heading.id || slugifyHeading(heading.textContent);
+      if (!id) id = "section";
+      let unique = id;
+      let n = 2;
+      while (used.has(unique) || document.getElementById(unique)) {
+        unique = `${id}-${n++}`;
+      }
+      used.add(unique);
+      heading.id = unique;
+      return { id: unique, text: heading.textContent.trim(), level: heading.tagName.toLowerCase() };
+    });
+
+    outline.innerHTML =
+      '<p class="section-label">On this page</p><ul class="doc-outline-list">' +
+      items
+        .map(
+          (item) =>
+            `<li class="doc-outline-item is-${item.level}"><a href="#${item.id}">${escapeHtml(item.text)}</a></li>`
+        )
+        .join("") +
+      "</ul>";
+    outline.hidden = false;
+  }
+
   function renderPreview() {
     if (!source.trim()) {
       root.innerHTML =
         '<div class="md-empty-state"><p class="muted">This entry is empty. Click Edit to add content.</p></div>';
+      const outline = document.getElementById("doc-outline");
+      if (outline) {
+        outline.hidden = true;
+        outline.innerHTML = "";
+      }
       return;
     }
 
@@ -177,12 +229,15 @@
         "src",
         "title",
         "loading",
+        "id",
       ],
     });
     root.innerHTML = clean.replace(
       /@@MATH(\d+)@@/g,
       (_, index) => slots[Number(index)] || ""
     );
+
+    buildOutline();
 
     if (typeof mermaid !== "undefined") {
       const nodes = root.querySelectorAll("pre.mermaid");

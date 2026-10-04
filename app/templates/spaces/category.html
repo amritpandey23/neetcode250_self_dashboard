@@ -17,11 +17,14 @@
       <div class="hero-copy">
         <p class="section-label">Category</p>
         <h1>{{ category.name }}</h1>
-        <p class="muted">{{ entry_counts.get(category.id, 0) }} entr{{ 'y' if entry_counts.get(category.id, 0) == 1 else 'ies' }}</p>
+        <p class="hero-progress-text spaces-hero-meta">
+          <strong>{{ entry_counts.get(category.id, 0) }}</strong>
+          <span class="muted">entr{{ 'y' if entry_counts.get(category.id, 0) == 1 else 'ies' }}</span>
+        </p>
       </div>
       <div class="spaces-hero-actions">
         <a class="btn btn-primary btn-icon" href="{{ url_for('docs.new_entry', space_slug=space.slug, category_id=category.id) }}">
-          {{ icon('file-plus') }}<span>New entry</span>
+          {{ icon('file-plus') }}<span>New Entry</span>
         </a>
         <details class="spaces-menu">
           <summary class="btn btn-ghost btn-icon">{{ icon('settings-2') }}<span>Manage</span></summary>
@@ -38,7 +41,7 @@
       </div>
     </section>
 
-    <form class="spaces-create-row" method="post" action="{{ url_for('docs.create_section', space_slug=space.slug) }}">
+    <form class="spaces-create-row spaces-create-row-compact" method="post" action="{{ url_for('docs.create_section', space_slug=space.slug) }}">
       <input type="hidden" name="category_id" value="{{ category.id }}">
       <label class="sr-only" for="new-section-name">New section</label>
       <input id="new-section-name" name="name" type="text" maxlength="200" required placeholder="New section name…">
@@ -59,7 +62,11 @@
           <a class="problem-name" href="{{ preview_url }}">{{ entry.title }}</a>
           <div class="problem-row-end">
             {% if entry.updated_at %}
-            <span class="muted mono">{{ entry.updated_at.strftime('%Y-%m-%d') }}</span>
+            <time
+              class="muted doc-entry-updated"
+              datetime="{{ entry.updated_at.isoformat() }}"
+              title="{{ entry.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC"
+            >{{ entry.updated_at|relative_past }}</time>
             {% endif %}
             <div class="doc-entry-tools" onclick="event.stopPropagation()">
               {{ reorder_buttons(url_for('docs.reorder_entry', space_slug=space.slug, entry_id=entry.id)) }}
@@ -87,7 +94,7 @@
             {{ icon('file-plus') }}<span>Entry</span>
           </a>
           <details class="spaces-menu">
-            <summary class="md-btn" title="Section actions">{{ icon('ellipsis') }}</summary>
+            <summary class="md-btn" title="Section actions" aria-label="Section actions">{{ icon('ellipsis') }}</summary>
             <div class="spaces-menu-panel">
               <form method="post" action="{{ url_for('docs.rename_section', space_slug=space.slug, section_id=section.id) }}" class="spaces-inline-rename">
                 <input type="text" name="name" value="{{ section.name }}" maxlength="200" required aria-label="Rename section">
@@ -109,7 +116,11 @@
           <a class="problem-name" href="{{ preview_url }}">{{ entry.title }}</a>
           <div class="problem-row-end">
             {% if entry.updated_at %}
-            <span class="muted mono">{{ entry.updated_at.strftime('%Y-%m-%d') }}</span>
+            <time
+              class="muted doc-entry-updated"
+              datetime="{{ entry.updated_at.isoformat() }}"
+              title="{{ entry.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC"
+            >{{ entry.updated_at|relative_past }}</time>
             {% endif %}
             <div class="doc-entry-tools" onclick="event.stopPropagation()">
               {{ reorder_buttons(url_for('docs.reorder_entry', space_slug=space.slug, entry_id=entry.id)) }}

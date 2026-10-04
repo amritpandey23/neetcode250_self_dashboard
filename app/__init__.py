@@ -35,6 +35,10 @@ def create_app(config_class=Config):
     app.register_blueprint(main_bp)
     app.register_blueprint(docs_bp)
 
+    from app.utils import relative_past
+
+    app.jinja_env.filters["relative_past"] = relative_past
+
     with app.app_context():
         db.create_all()
         from app.schema import ensure_schema

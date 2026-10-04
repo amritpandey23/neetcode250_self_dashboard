@@ -38,7 +38,7 @@
 
   <div class="dash-main">
     {% if filters.category %}
-    <section class="dash-hero dash-hero-category">
+    <section class="dash-hero dash-hero-category problems-hero">
       <div class="hero-copy">
         <p class="section-label">Category</p>
         <h1>{{ filters.category }}</h1>
@@ -50,12 +50,9 @@
           <div class="hero-bar-fill" style="width: {{ (data.done / data.total * 100) if data.total else 0 }}%"></div>
         </div>
       </div>
-      <button type="button" class="btn btn-primary btn-icon" id="open-add-problem" data-category="{{ filters.category }}">
-        {{ icon('plus') }}<span>Add Question</span>
-      </button>
     </section>
     {% else %}
-    <section class="dash-hero dash-hero-category">
+    <section class="dash-hero dash-hero-category problems-hero">
       <div class="hero-copy">
         <p class="section-label">Library</p>
         <h1>All Problems</h1>
@@ -69,9 +66,6 @@
           <div class="hero-bar-fill" style="width: {{ stats.percent }}%"></div>
         </div>
       </div>
-      <button type="button" class="btn btn-primary btn-icon" id="open-add-problem" data-category="">
-        {{ icon('plus') }}<span>Add Question</span>
-      </button>
     </section>
     {% endif %}
 
@@ -86,7 +80,7 @@
       </label>
       <label>
         <span class="sr-only">Difficulty</span>
-        <select name="difficulty" data-autosubmit>
+        <select name="difficulty" data-autosubmit aria-label="Difficulty">
           <option value="">Difficulty</option>
           {% for d in ['Easy', 'Medium', 'Hard'] %}
           <option value="{{ d }}" {% if filters.difficulty == d %}selected{% endif %}>{{ d }}</option>
@@ -95,7 +89,7 @@
       </label>
       <label>
         <span class="sr-only">Status</span>
-        <select name="status" data-autosubmit>
+        <select name="status" data-autosubmit aria-label="Status">
           <option value="">Status</option>
           {% for s in statuses %}
           <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ status_labels[s] }}</option>
@@ -106,6 +100,9 @@
         <a class="btn btn-ghost btn-icon" href="{{ url_for('main.problems', category=filters.category) if filters.category else url_for('main.problems') }}">
           {{ icon('rotate-ccw') }}<span>Reset</span>
         </a>
+        <button type="button" class="btn btn-primary btn-icon" id="open-add-problem" data-category="{{ filters.category or '' }}">
+          {{ icon('plus') }}<span>Add Question</span>
+        </button>
       </div>
     </form>
 
@@ -129,13 +126,13 @@
             <div class="problem-row-star">
               {{ bookmark_button(problem.slug, bookmarked, return_url, problem.name) }}
             </div>
-            {{ status_badge(status, status_labels.get(status, status), true) }}
             <a class="problem-name" href="{{ detail_url }}">{{ problem.name }}</a>
             <div class="problem-row-lc">
               {{ leetcode_icon_link(problem.leetcode_url, problem.name) }}
             </div>
             <div class="problem-row-end">
               <span class="diff diff-{{ problem.difficulty|lower }}">{{ problem.difficulty }}</span>
+              {{ status_badge(status, status_labels.get(status, status)) }}
               <span class="row-chevron" aria-hidden="true">{{ icon('chevron-right') }}</span>
             </div>
           </article>

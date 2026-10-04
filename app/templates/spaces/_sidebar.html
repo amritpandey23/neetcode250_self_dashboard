@@ -9,8 +9,10 @@
   <form class="spaces-sidebar-create" method="post" action="{{ url_for('docs.create_category', space_slug=space.slug) }}">
     <label class="sr-only" for="new-category-name">New category</label>
     <input id="new-category-name" name="name" type="text" maxlength="200" required placeholder="New category…">
-    <button class="btn btn-ghost btn-icon" type="submit" title="Add category">{{ icon('plus') }}</button>
+    <button class="btn btn-ghost btn-icon" type="submit" title="Add category" aria-label="Add category">{{ icon('plus') }}</button>
   </form>
+
+  <p class="section-label spaces-sidebar-section-label">Categories</p>
 
   <nav class="sidebar-nav spaces-sidebar-nav">
     {% for cat in categories %}

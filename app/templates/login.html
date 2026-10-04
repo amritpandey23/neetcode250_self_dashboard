@@ -4,26 +4,34 @@
 {% block content %}
 <section class="auth-panel">
   <div class="auth-copy">
-    <p class="eyebrow">Self dashboard</p>
-    <h1>Track your NeetCode 250 grind.</h1>
-    <p class="lede">Mark progress, keep notes, and filter by category or difficulty — all stored locally in SQLite.</p>
+    <p class="section-label">Self dashboard</p>
+    <h1>Your coding practice, organized.</h1>
+    <p class="lede">Track NeetCode 250 progress, notes, and problem-solving history — stored locally in SQLite.</p>
   </div>
   <form class="auth-form" method="post" action="{{ url_for('auth.login') }}">
-    <h2>{{ icon('log-in') }} Login</h2>
+    <h2>Login</h2>
     <label>
-      <span class="label-with-icon">{{ icon('user') }} Username</span>
+      Username
       <input type="text" name="username" required autocomplete="username" autofocus>
     </label>
     <label>
-      <span class="label-with-icon">{{ icon('lock') }} Password</span>
-      <input type="password" name="password" required autocomplete="current-password">
+      Password
+      <span class="auth-password">
+        <input type="password" name="password" required autocomplete="current-password">
+        <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Show password" title="Show password">
+          {{ icon('eye') }}
+        </button>
+      </span>
     </label>
     <label class="checkbox">
       <input type="checkbox" name="remember">
       Remember me
     </label>
-    <button class="btn btn-primary btn-icon" type="submit">{{ icon('arrow-right') }}<span>Sign in</span></button>
+    <button class="btn btn-primary btn-icon auth-submit" type="submit">{{ icon('arrow-right') }}<span>Sign in</span></button>
     <p class="auth-alt">No account? <a href="{{ url_for('auth.register') }}">Register</a></p>
   </form>
 </section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/auth-ui.js') }}"></script>
 {% endblock %}

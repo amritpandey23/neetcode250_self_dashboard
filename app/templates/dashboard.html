@@ -5,7 +5,7 @@
 <section class="overview-page">
   <section class="dash-hero">
     <div class="hero-copy">
-      <p class="section-label">Overview</p>
+      <p class="section-label">Progress</p>
       <h1>NeetCode 250</h1>
       <p class="hero-progress-text">
         <strong>{{ stats.solved }}</strong> / {{ stats.total }} problems solved
@@ -18,11 +18,9 @@
         <a class="btn btn-primary btn-icon" href="{{ url_for('main.problems') }}">
           {{ icon('list') }}<span>Browse problems</span>
         </a>
-        {% if continue_learning %}
-        <a class="btn btn-ghost btn-icon" href="{{ url_for('main.problem_detail', slug=continue_learning.problem.slug, next=url_for('main.dashboard')) }}">
-          {{ icon('play') }}<span>Continue</span>
+        <a class="btn btn-ghost btn-icon" href="{{ url_for('main.roadmap') }}">
+          {{ icon('route') }}<span>Roadmap</span>
         </a>
-        {% endif %}
       </div>
     </div>
     {% if continue_learning %}
@@ -32,9 +30,12 @@
         {{ continue_learning.problem.name }}
       </a>
       <p class="continue-meta">
-        {{ continue_learning.problem.category }}
-        · <span class="diff diff-{{ continue_learning.problem.difficulty|lower }}">{{ continue_learning.problem.difficulty }}</span>
-        · {{ status_badge(continue_learning.status, status_labels[continue_learning.status]) }}
+        <span>{{ continue_learning.problem.category }}</span>
+        <span class="meta-sep" aria-hidden="true">·</span>
+        <span class="diff diff-{{ continue_learning.problem.difficulty|lower }}">{{ continue_learning.problem.difficulty }}</span>
+      </p>
+      <p class="continue-status">
+        {{ status_badge(continue_learning.status, status_labels[continue_learning.status]) }}
       </p>
       <a class="btn btn-primary btn-icon" href="{{ url_for('main.problem_detail', slug=continue_learning.problem.slug, next=url_for('main.dashboard')) }}">
         <span>Continue</span>{{ icon('arrow-right') }}
@@ -157,15 +158,19 @@
         </a>
       </header>
       {% if attempted_recent %}
-      <div class="activity-list">
+      <div class="activity-list activity-list-compact">
         {% for item in attempted_recent %}
         {% set problem = item.problem %}
-        <a class="aging-preview-item" href="{{ url_for('main.problem_detail', slug=problem.slug, next=url_for('main.dashboard')) }}">
+        <a class="aging-preview-item activity-row-compact" href="{{ url_for('main.problem_detail', slug=problem.slug, next=url_for('main.dashboard')) }}">
           <div class="aging-preview-main">
             <strong>{{ problem.name }}</strong>
             <span class="muted">{{ problem.category }} · {{ problem.difficulty }}</span>
           </div>
-          <time class="activity-date" datetime="{{ item.at.isoformat() }}">{{ item.at.strftime('%Y-%m-%d') }}</time>
+          <time
+            class="activity-date activity-date-relative"
+            datetime="{{ item.at.isoformat() }}"
+            title="{{ item.at.strftime('%Y-%m-%d %H:%M') }} UTC"
+          >{{ item.at|relative_past }}</time>
         </a>
         {% endfor %}
       </div>
@@ -185,15 +190,19 @@
         </a>
       </header>
       {% if solved_history %}
-      <div class="activity-list">
+      <div class="activity-list activity-list-compact">
         {% for item in solved_history %}
         {% set problem = item.problem %}
-        <a class="aging-preview-item" href="{{ url_for('main.problem_detail', slug=problem.slug, next=url_for('main.dashboard')) }}">
+        <a class="aging-preview-item activity-row-compact" href="{{ url_for('main.problem_detail', slug=problem.slug, next=url_for('main.dashboard')) }}">
           <div class="aging-preview-main">
             <strong>{{ problem.name }}</strong>
             <span class="muted">{{ problem.category }} · {{ problem.difficulty }}</span>
           </div>
-          <time class="activity-date" datetime="{{ item.at.isoformat() }}">{{ item.at.strftime('%Y-%m-%d') }}</time>
+          <time
+            class="activity-date activity-date-relative"
+            datetime="{{ item.at.isoformat() }}"
+            title="{{ item.at.strftime('%Y-%m-%d %H:%M') }} UTC"
+          >{{ item.at|relative_past }}</time>
         </a>
         {% endfor %}
       </div>

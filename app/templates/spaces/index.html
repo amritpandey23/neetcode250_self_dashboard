@@ -4,28 +4,39 @@
 {% block content %}
 <article class="spaces-hub">
   <header class="spaces-hub-header">
-    <div>
-      <p class="section-label">Documents</p>
-      <h1>Spaces</h1>
-      <p class="muted spaces-hub-sub">Long-form notes organized by topic — private to your account.</p>
-    </div>
+    <p class="section-label">Spaces</p>
+    <h1>Spaces</h1>
+    <p class="muted spaces-hub-sub">Long-form notes organized by topic — private to your account.</p>
   </header>
 
   <form class="spaces-create" method="post" action="{{ url_for('docs.create_space') }}">
     <label class="sr-only" for="space-name">New space name</label>
-    <input id="space-name" name="name" type="text" maxlength="200" required placeholder="e.g. Data Structures &amp; Algorithms" autocomplete="off">
-    <button class="btn btn-primary btn-icon" type="submit">{{ icon('plus') }}<span>New space</span></button>
+    <input id="space-name" name="name" type="text" maxlength="200" required placeholder="Space name…" autocomplete="off">
+    <button class="btn btn-primary btn-icon" type="submit">{{ icon('plus') }}<span>New Space</span></button>
   </form>
 
   {% if spaces %}
   <ul class="spaces-list">
     {% for space in spaces %}
-    <li class="spaces-list-item">
-      <a class="spaces-list-main" href="{{ url_for('docs.space_home', space_slug=space.slug) }}">
+    {% set entry_total = namespace(n=0) %}
+    {% for cat in space.categories %}
+      {% set entry_total.n = entry_total.n + (cat.entries|length) %}
+    {% endfor %}
+    {% set open_url = url_for('docs.space_home', space_slug=space.slug) %}
+    <li class="spaces-list-item" data-href="{{ open_url }}" tabindex="0" role="link" aria-label="Open {{ space.name }}">
+      <a class="spaces-list-main" href="{{ open_url }}">
         <strong>{{ space.name }}</strong>
-        <span class="muted">{{ space.categories|length }} categor{{ 'y' if space.categories|length == 1 else 'ies' }}</span>
+        <span class="muted spaces-list-meta">
+          {{ space.categories|length }} categor{{ 'y' if space.categories|length == 1 else 'ies' }}
+          <span class="meta-sep" aria-hidden="true">·</span>
+          {{ entry_total.n }} entr{{ 'y' if entry_total.n == 1 else 'ies' }}
+          {% if space.updated_at %}
+          <span class="meta-sep" aria-hidden="true">·</span>
+          <span title="{{ space.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC">Updated {{ space.updated_at|relative_past }}</span>
+          {% endif %}
+        </span>
       </a>
-      <div class="spaces-list-actions">
+      <div class="spaces-list-actions" onclick="event.stopPropagation()">
         {{ reorder_buttons(url_for('docs.reorder_space', space_slug=space.slug), url_for('docs.index')) }}
         <details class="spaces-menu">
           <summary class="md-btn" title="Space actions" aria-label="Space actions">{{ icon('ellipsis') }}</summary>
@@ -40,14 +51,23 @@
             </form>
           </div>
         </details>
+        <span class="spaces-list-chevron" aria-hidden="true">{{ icon('chevron-right') }}</span>
       </div>
     </li>
     {% endfor %}
   </ul>
   {% else %}
   <div class="spaces-empty">
-    <p>No spaces yet. Create one to start organizing notes by topic.</p>
+    <p class="spaces-empty-title">Create your first space</p>
+    <p>Organize long-form notes, algorithms, research, and personal knowledge by topic.</p>
+    <button class="btn btn-primary btn-icon" type="button" id="focus-create-space">
+      {{ icon('plus') }}<span>Create Space</span>
+    </button>
   </div>
   {% endif %}
 </article>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/spaces-ui.js') }}"></script>
 {% endblock %}

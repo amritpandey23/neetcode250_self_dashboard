@@ -4,26 +4,39 @@
 {% block content %}
 <section class="auth-panel">
   <div class="auth-copy">
-    <p class="eyebrow">Get started</p>
+    <p class="section-label">Get started</p>
     <h1>Create your tracker.</h1>
-    <p class="lede">One account, 250 problems, notes that stay with you between sessions.</p>
+    <p class="lede">One account, 250 problems, and notes that stay with you between sessions.</p>
   </div>
   <form class="auth-form" method="post" action="{{ url_for('auth.register') }}">
-    <h2>{{ icon('user-plus') }} Register</h2>
+    <h2>Create your tracker</h2>
     <label>
-      <span class="label-with-icon">{{ icon('user') }} Username</span>
+      Username
       <input type="text" name="username" required minlength="3" autocomplete="username" autofocus>
     </label>
     <label>
-      <span class="label-with-icon">{{ icon('lock') }} Password</span>
-      <input type="password" name="password" required minlength="6" autocomplete="new-password">
+      Password
+      <span class="auth-password">
+        <input type="password" name="password" required minlength="6" autocomplete="new-password">
+        <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Show password" title="Show password">
+          {{ icon('eye') }}
+        </button>
+      </span>
     </label>
     <label>
-      <span class="label-with-icon">{{ icon('shield-check') }} Confirm password</span>
-      <input type="password" name="confirm" required minlength="6" autocomplete="new-password">
+      Confirm password
+      <span class="auth-password">
+        <input type="password" name="confirm" required minlength="6" autocomplete="new-password">
+        <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Show password" title="Show password">
+          {{ icon('eye') }}
+        </button>
+      </span>
     </label>
-    <button class="btn btn-primary btn-icon" type="submit">{{ icon('user-check') }}<span>Create account</span></button>
+    <button class="btn btn-primary btn-icon auth-submit" type="submit">{{ icon('user-check') }}<span>Create account</span></button>
     <p class="auth-alt">Already registered? <a href="{{ url_for('auth.login') }}">Login</a></p>
   </form>
 </section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/auth-ui.js') }}"></script>
 {% endblock %}
