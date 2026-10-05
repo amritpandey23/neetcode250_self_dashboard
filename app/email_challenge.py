@@ -7,8 +7,9 @@ import os
 import smtplib
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from email.message import EmailMessage
+from zoneinfo import ZoneInfo
 
 from flask import Flask, current_app, url_for
 
@@ -19,6 +20,27 @@ logger = logging.getLogger(__name__)
 
 _scheduler_started = False
 _scheduler_lock = threading.Lock()
+DEFAULT_TIMEZONE = "UTC"
+
+
+def _user_zone(user: User) -> ZoneInfo:
+    name = (getattr(user, "email_challenge_timezone", None) or DEFAULT_TIMEZONE).strip()
+    try:
+        return ZoneInfo(name)
+    except Exception:
+        logger.warning(
+            "EMAIL_CHALLENGE invalid timezone %r for user=%s; using UTC",
+            name,
+            user.username,
+        )
+        return ZoneInfo(DEFAULT_TIMEZONE)
+
+
+def _user_local_now(user: User, now_utc: datetime | None = None) -> datetime:
+    now_utc = now_utc or datetime.now(timezone.utc)
+    if now_utc.tzinfo is None:
+        now_utc = now_utc.replace(tzinfo=timezone.utc)
+    return now_utc.astimezone(_user_zone(user))
 
 
 def pick_random_unsolved(user_id: int) -> Problem | None:
@@ -243,7 +265,7 @@ def send_challenge_for_user(user: User, *, mark_sent: bool = False) -> Problem |
         return None
     send_problem_email(user, problem)
     if mark_sent:
-        user.email_challenge_last_sent_on = datetime.now().date()
+        user.email_challenge_last_sent_on = _user_local_now(user).date()
         db.session.commit()
     return problem
 
@@ -258,20 +280,20 @@ def _user_challenge_time(user: User) -> tuple[int, int]:
     return int(hour) % 24, int(minute) % 60
 
 
-def _is_challenge_due(user: User, now: datetime | None = None) -> bool:
-    """True if the user should receive today's challenge at the current local time."""
-    now = now or datetime.now()
-    today = now.date()
+def _is_challenge_due(user: User, now_utc: datetime | None = None) -> bool:
+    """True if the user's local time has reached today's preferred send time."""
+    local_now = _user_local_now(user, now_utc)
+    today = local_now.date()
     if user.email_challenge_last_sent_on == today:
         return False
     hour, minute = _user_challenge_time(user)
-    preferred = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    return now >= preferred
+    preferred = local_now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    return local_now >= preferred
 
 
 def run_daily_challenge_for_all() -> int:
     """Send today's challenge to every opted-in user who is due. Returns emails sent."""
-    now = datetime.now()
+    now_utc = datetime.now(timezone.utc)
     users = User.query.filter(
         User.email_challenge_enabled.is_(True),
         User.email.isnot(None),
@@ -279,7 +301,7 @@ def run_daily_challenge_for_all() -> int:
     ).all()
     sent = 0
     for user in users:
-        if not _is_challenge_due(user, now):
+        if not _is_challenge_due(user, now_utc):
             continue
         try:
             if send_challenge_for_user(user, mark_sent=True) is not None:
@@ -302,7 +324,8 @@ def run_daily_challenge_for_all() -> int:
 def _scheduler_loop(app: Flask) -> None:
     with app.app_context():
         logger.info(
-            "EMAIL_CHALLENGE scheduler started (checks every 60s for per-user send times)"
+            "EMAIL_CHALLENGE scheduler started "
+            "(checks every 60s for per-user local send times)"
         )
         while True:
             try:

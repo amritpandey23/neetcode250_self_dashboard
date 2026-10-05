@@ -4531,6 +4531,28 @@ body:has(.problem-shell) .site-main {
   color: var(--muted);
 }
 
+.settings-tz-detect {
+  margin-left: 0.15rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: inherit;
+  font-weight: 550;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.settings-tz-detect:hover {
+  color: var(--accent-deep);
+}
+
+.settings-form select {
+  padding: 0.65rem 0.75rem;
+}
+
 .settings-form input:focus,
 .settings-form input:focus-visible {
   outline: none;

@@ -1,8 +1,10 @@
+from zoneinfo import ZoneInfo, available_timezones
+
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app import db
-from app.email_challenge import send_challenge_for_user
+from app.email_challenge import DEFAULT_TIMEZONE, send_challenge_for_user
 from app.models import User
 
 auth_bp = Blueprint("auth", __name__)
@@ -13,6 +15,20 @@ def _valid_email(value: str) -> bool:
         return False
     local, _, domain = value.partition("@")
     return bool(local) and "." in domain
+
+
+def _valid_timezone(value: str) -> bool:
+    if not value:
+        return False
+    try:
+        ZoneInfo(value)
+        return True
+    except Exception:
+        return False
+
+
+def _timezone_choices() -> list[str]:
+    return sorted(available_timezones())
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
@@ -112,6 +128,7 @@ def settings():
         email = (request.form.get("email") or "").strip()
         enabled = bool(request.form.get("email_challenge_enabled"))
         time_raw = (request.form.get("email_challenge_time") or "").strip()
+        tz_raw = (request.form.get("email_challenge_timezone") or "").strip()
         hour = (
             current_user.email_challenge_hour
             if current_user.email_challenge_hour is not None
@@ -122,7 +139,11 @@ def settings():
             if current_user.email_challenge_minute is not None
             else default_minute
         )
+        timezone_name = (
+            (current_user.email_challenge_timezone or "").strip() or DEFAULT_TIMEZONE
+        )
         time_error = None
+        tz_error = None
 
         if time_raw:
             parts = time_raw.split(":")
@@ -137,22 +158,33 @@ def settings():
                 except ValueError:
                     time_error = "Enter a valid send time (HH:MM)."
 
+        if tz_raw:
+            if not _valid_timezone(tz_raw):
+                tz_error = "Choose a valid timezone."
+            else:
+                timezone_name = tz_raw
+        elif enabled:
+            tz_error = "Timezone is required for daily challenges."
+
         if email and not _valid_email(email):
             flash("Enter a valid email address.", "error")
         elif enabled and not email:
             flash("Email is required to enable daily challenges.", "error")
         elif time_error:
             flash(time_error, "error")
+        elif tz_error:
+            flash(tz_error, "error")
         else:
             current_user.email = email or None
             current_user.email_challenge_enabled = enabled
             current_user.email_challenge_hour = hour
             current_user.email_challenge_minute = minute
+            current_user.email_challenge_timezone = timezone_name
             db.session.commit()
             if enabled:
                 flash(
                     f"Settings saved. Daily challenge emails at "
-                    f"{hour:02d}:{minute:02d} (server local time).",
+                    f"{hour:02d}:{minute:02d} ({timezone_name}).",
                     "success",
                 )
             else:
@@ -169,8 +201,16 @@ def settings():
         if current_user.email_challenge_minute is not None
         else default_minute
     )
+    timezone_name = (
+        (current_user.email_challenge_timezone or "").strip() or DEFAULT_TIMEZONE
+    )
     return render_template(
         "settings.html",
         mail_configured=mail_configured,
         challenge_time=f"{hour:02d}:{minute:02d}",
+        challenge_timezone=timezone_name,
+        timezone_choices=_timezone_choices(),
+        detect_timezone=not current_user.email_challenge_enabled
+        and (current_user.email_challenge_timezone or DEFAULT_TIMEZONE)
+        == DEFAULT_TIMEZONE,
     )

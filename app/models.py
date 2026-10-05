@@ -20,6 +20,7 @@ class User(UserMixin, db.Model):
     email_challenge_enabled = db.Column(db.Boolean, nullable=False, default=False)
     email_challenge_hour = db.Column(db.Integer, nullable=False, default=9)
     email_challenge_minute = db.Column(db.Integer, nullable=False, default=0)
+    email_challenge_timezone = db.Column(db.String(80), nullable=False, default="UTC")
     email_challenge_last_sent_on = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=utcnow)
 

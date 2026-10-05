@@ -8,7 +8,7 @@
     <h1>Settings</h1>
     <p class="lede">
       Configure where and when daily random-problem challenge emails are sent
-      (server local time).
+      in your local timezone.
     </p>
   </header>
 
@@ -41,7 +41,26 @@
         value="{{ challenge_time }}"
         required
       >
-      <span class="settings-field-hint">Once per day at this time (server local clock).</span>
+      <span class="settings-field-hint">Once per day at this clock time in your timezone.</span>
+    </label>
+    <label>
+      Timezone
+      <select
+        name="email_challenge_timezone"
+        id="email-challenge-timezone"
+        required
+        {% if detect_timezone %}data-autodetect="1"{% endif %}
+      >
+        {% for tz in timezone_choices %}
+        <option value="{{ tz }}" {% if tz == challenge_timezone %}selected{% endif %}>{{ tz }}</option>
+        {% endfor %}
+      </select>
+      <span class="settings-field-hint">
+        <span id="tz-detected" hidden></span>
+        <button type="button" class="settings-tz-detect" id="tz-detect-btn" hidden>
+          Use detected timezone
+        </button>
+      </span>
     </label>
     <label class="checkbox">
       <input
@@ -74,4 +93,7 @@
     </div>
   </form>
 </section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
 {% endblock %}

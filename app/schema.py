@@ -35,6 +35,13 @@ def ensure_schema():
                     "INTEGER NOT NULL DEFAULT 0"
                 )
             )
+        if "email_challenge_timezone" not in user_columns:
+            conn.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN email_challenge_timezone "
+                    "VARCHAR(80) NOT NULL DEFAULT 'UTC'"
+                )
+            )
         if "email_challenge_last_sent_on" not in user_columns:
             conn.execute(
                 text(
