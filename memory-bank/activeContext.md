@@ -1,19 +1,18 @@
 # Active Context
 
 ## Current focus
-UI/UX refinement for Spaces (hub/category/document) and auth (login/register), aligned with Dashboard/Problems polish.
+Daily random-problem email challenge: Settings page + SMTP/console delivery + daily scheduler.
 
 ## Recent decisions
-- Hero emphasizes NeetCode 250 progress + Continue Learning (from existing progress data); greeting de-emphasized
-- Stats as a single segmented row: Problems / Attempted / Solved (no fake metrics)
-- Less card nesting: hero/filters are sections; problem list is the primary bordered surface
-- Filters autosubmit on change/search debounce; Apply removed; + Add Question is primary CTA
-- Sidebar progress bars only when `done > 0`; no invented category taxonomy groups
-- Problem rows: star → title → LC → difficulty (metadata) → status (user state) → chevron; whole-row click/keyboard
-- Roadmap: quieter dotted grid, larger nodes, completed/current/upcoming states, YOU ARE HERE from progress, zoom controls kept
-- Type scale via CSS tokens (`--title-size`, `--section-size`, `--body-size`, `--meta-size`, `--label-size`)
-- Theme via `html[data-theme]`, persisted in `localStorage`
+- Daily cadence (default 09:00 local); test via Settings “Send test email now” (no minute spam)
+- SMTP when `MAIL_SERVER` set; otherwise log full message to Flask console
+- Opt-in via `User.email_challenge_enabled`; email required when enabling
+- Per-user send time (`email_challenge_hour` / `email_challenge_minute`) in Settings; scheduler polls every 60s and sends once/day after preferred local time
+- Picks random **unsolved** problem (`status != done`)
+- Background daemon thread started from `create_app`, guarded for Flask debug reloader
+- External links in scheduled emails use `APP_BASE_URL` when no request context
 
 ## Next steps
 - Optional: surface linked Spaces entries in AI Coach context
 - Optional: export notes / review due dates
+- Soft delete / richer account settings beyond email challenge

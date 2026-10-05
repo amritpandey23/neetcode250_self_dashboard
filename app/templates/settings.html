@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}Settings · NeetCode 250{% endblock %}
+{% block content %}
+<section class="settings-page">
+  <header class="settings-header">
+    <p class="section-label">Account</p>
+    <h1>Settings</h1>
+    <p class="lede">
+      Configure where and when daily random-problem challenge emails are sent
+      (server local time).
+    </p>
+  </header>
+
+  <form class="settings-form" method="post" action="{{ url_for('auth.settings') }}">
+    <input type="hidden" name="action" value="save">
+    <h2>Email challenge</h2>
+    <p class="settings-hint">
+      {% if mail_configured %}
+        SMTP is configured — emails will be delivered to your inbox.
+      {% else %}
+        SMTP is not configured — emails are printed to the app console.
+        Add <code>MAIL_SERVER</code> (and related vars) to <code>.env</code> for real delivery.
+      {% endif %}
+    </p>
+    <label>
+      Email address
+      <input
+        type="email"
+        name="email"
+        value="{{ current_user.email or '' }}"
+        autocomplete="email"
+        placeholder="you@example.com"
+      >
+    </label>
+    <label>
+      Send time
+      <input
+        type="time"
+        name="email_challenge_time"
+        value="{{ challenge_time }}"
+        required
+      >
+      <span class="settings-field-hint">Once per day at this time (server local clock).</span>
+    </label>
+    <label class="checkbox">
+      <input
+        type="checkbox"
+        name="email_challenge_enabled"
+        value="1"
+        {% if current_user.email_challenge_enabled %}checked{% endif %}
+      >
+      Send me one random unsolved problem every day
+    </label>
+    <div class="settings-actions">
+      <button class="btn btn-primary btn-icon" type="submit">
+        {{ icon('save') }}<span>Save settings</span>
+      </button>
+    </div>
+  </form>
+
+  <form class="settings-form settings-form-secondary" method="post" action="{{ url_for('auth.settings') }}">
+    <input type="hidden" name="action" value="test_email">
+    <h2>Test delivery</h2>
+    <p class="settings-hint">
+      Sends one random unsolved problem email immediately so you can verify
+      {% if mail_configured %}SMTP{% else %}console logging{% endif %}
+      without waiting for the daily schedule.
+    </p>
+    <div class="settings-actions">
+      <button class="btn btn-ghost btn-icon" type="submit" {% if not current_user.email %}disabled title="Save an email address first"{% endif %}>
+        {{ icon('mail') }}<span>Send test email now</span>
+      </button>
+    </div>
+  </form>
+</section>
+{% endblock %}

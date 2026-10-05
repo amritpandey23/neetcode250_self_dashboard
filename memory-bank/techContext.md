@@ -7,6 +7,7 @@
 - Flask-SQLAlchemy
 - SQLite
 - Werkzeug password hashing
+- stdlib `smtplib` + background thread for daily email challenge
 
 ## Setup
 ```bash
@@ -15,6 +16,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python run.py
 ```
+
+## Email challenge env
+- Leave `MAIL_SERVER` empty → emails logged to console (good for testing via Settings)
+- Set `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USE_TLS`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER` for SMTP
+- `EMAIL_CHALLENGE_HOUR` / `EMAIL_CHALLENGE_MINUTE` (default 9:00 local)
+- `APP_BASE_URL` for in-email dashboard links from the scheduler (default `http://127.0.0.1:5001`)
 
 ## Constraints
 - Single-process local use assumed

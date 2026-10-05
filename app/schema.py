@@ -9,6 +9,39 @@ AGING_MAX_SOLVES = 5
 def ensure_schema():
     """Apply lightweight SQLite migrations for columns added after first run."""
     with db.engine.begin() as conn:
+        user_columns = {
+            row[1] for row in conn.execute(text("PRAGMA table_info(users)"))
+        }
+        if "email" not in user_columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(255)"))
+        if "email_challenge_enabled" not in user_columns:
+            conn.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN email_challenge_enabled "
+                    "BOOLEAN NOT NULL DEFAULT 0"
+                )
+            )
+        if "email_challenge_hour" not in user_columns:
+            conn.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN email_challenge_hour "
+                    "INTEGER NOT NULL DEFAULT 9"
+                )
+            )
+        if "email_challenge_minute" not in user_columns:
+            conn.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN email_challenge_minute "
+                    "INTEGER NOT NULL DEFAULT 0"
+                )
+            )
+        if "email_challenge_last_sent_on" not in user_columns:
+            conn.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN email_challenge_last_sent_on DATE"
+                )
+            )
+
         columns = {
             row[1] for row in conn.execute(text("PRAGMA table_info(progress)"))
         }

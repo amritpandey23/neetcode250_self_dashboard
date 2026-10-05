@@ -67,6 +67,7 @@
         </summary>
         <div class="nav-menu-panel nav-menu-panel-end" role="menu">
           <div class="nav-menu-meta">Signed in as <strong>{{ current_user.username }}</strong></div>
+          <a class="nav-menu-item {% if endpoint == 'auth.settings' %}is-active{% endif %}" href="{{ url_for('auth.settings') }}" role="menuitem">{{ icon('settings-2') }}<span>Settings</span></a>
           <a class="nav-menu-item" href="{{ url_for('auth.logout') }}" role="menuitem">{{ icon('log-out') }}<span>Logout</span></a>
         </div>
       </details>

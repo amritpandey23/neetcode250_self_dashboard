@@ -31,13 +31,14 @@
 - Activity log panel on dashboard (status, practice, bookmarks, Spaces CRUD, links, etc.)
 - UI refinement: developer-tool hierarchy (hero/continue/stats/sidebar/rows/filters/nav/roadmap), less card clutter, responsive mobile list/filters/drawer
 - Spaces + auth polish: denser space rows, sidebar hierarchy, document reading width/typography/outline, login/register consistency + password reveal
+- Settings page: notification email + daily challenge opt-in + Send test email (SMTP or console)
 
 ## Left / nice-to-have
-- Soft delete / account settings
+- Soft delete / richer account settings
 - Keyboard shortcuts
 - Import/export notes
 - Pass linked Spaces entries into AI Coach context
 - Optional sidebar category taxonomy groups (needs real grouping data)
 
 ## Known issues
-- None observed for the latest UI refinement pass
+- None observed for the latest email-challenge feature

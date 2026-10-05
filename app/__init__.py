@@ -47,4 +47,8 @@ def create_app(config_class=Config):
         ensure_schema()
         seed_problems()
 
+    from app.email_challenge import start_email_challenge_scheduler
+
+    start_email_challenge_scheduler(app)
+
     return app

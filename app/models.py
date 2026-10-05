@@ -16,6 +16,11 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
+    email = db.Column(db.String(255), nullable=True)
+    email_challenge_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    email_challenge_hour = db.Column(db.Integer, nullable=False, default=9)
+    email_challenge_minute = db.Column(db.Integer, nullable=False, default=0)
+    email_challenge_last_sent_on = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=utcnow)
 
     progress_entries = db.relationship(
