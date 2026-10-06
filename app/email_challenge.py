@@ -7,11 +7,12 @@ import os
 import smtplib
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from email.message import EmailMessage
 from zoneinfo import ZoneInfo
 
 from flask import Flask, current_app, url_for
+from sqlalchemy import or_
 
 from app import db
 from app.models import Problem, Progress, User
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 _scheduler_started = False
 _scheduler_lock = threading.Lock()
+_scheduler_lock_file = None  # kept open to hold the process lock
 DEFAULT_TIMEZONE = "UTC"
 
 
@@ -270,6 +272,39 @@ def send_challenge_for_user(user: User, *, mark_sent: bool = False) -> Problem |
     return problem
 
 
+def _claim_daily_send(user_id: int, local_today: date) -> bool:
+    """
+    Atomically mark today's challenge as sent for this user.
+
+    Returns True only for the caller that wins the claim — prevents duplicate
+    emails when two scheduler processes run (e.g. Flask debug reloader).
+    """
+    updated = User.query.filter(
+        User.id == user_id,
+        or_(
+            User.email_challenge_last_sent_on.is_(None),
+            User.email_challenge_last_sent_on != local_today,
+        ),
+    ).update(
+        {"email_challenge_last_sent_on": local_today},
+        synchronize_session=False,
+    )
+    db.session.commit()
+    return updated == 1
+
+
+def _release_daily_send_claim(user_id: int, local_today: date) -> None:
+    """Undo a claim so a failed send can retry on the next scheduler tick."""
+    User.query.filter(
+        User.id == user_id,
+        User.email_challenge_last_sent_on == local_today,
+    ).update(
+        {"email_challenge_last_sent_on": None},
+        synchronize_session=False,
+    )
+    db.session.commit()
+
+
 def _user_challenge_time(user: User) -> tuple[int, int]:
     hour = user.email_challenge_hour
     minute = user.email_challenge_minute
@@ -303,10 +338,22 @@ def run_daily_challenge_for_all() -> int:
     for user in users:
         if not _is_challenge_due(user, now_utc):
             continue
+        local_today = _user_local_now(user, now_utc).date()
+        # Claim before sending so concurrent schedulers cannot double-send.
+        if not _claim_daily_send(user.id, local_today):
+            continue
         try:
-            if send_challenge_for_user(user, mark_sent=True) is not None:
-                sent += 1
+            problem = pick_random_unsolved(user.id)
+            if problem is None:
+                logger.info(
+                    "EMAIL_CHALLENGE skip user=%s: no unsolved problems",
+                    user.username,
+                )
+                continue
+            send_problem_email(user, problem)
+            sent += 1
         except Exception:
+            _release_daily_send_claim(user.id, local_today)
             logger.exception(
                 "EMAIL_CHALLENGE failed for user=%s email=%s",
                 user.username,
@@ -335,16 +382,49 @@ def _scheduler_loop(app: Flask) -> None:
             time.sleep(60)
 
 
+def _acquire_process_lock(app: Flask) -> bool:
+    """Exclusive lock so Flask's debug reloader parent+child don't both schedule."""
+    global _scheduler_lock_file
+
+    lock_path = os.path.join(app.instance_path, ".email_challenge_scheduler.lock")
+    os.makedirs(app.instance_path, exist_ok=True)
+    lock_file = open(lock_path, "w", encoding="utf-8")
+    try:
+        import fcntl
+
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        lock_file.close()
+        return False
+    except OSError:
+        # Non-POSIX or flock unavailable — fall back to in-process guard only.
+        lock_file.close()
+        return True
+
+    lock_file.write(str(os.getpid()))
+    lock_file.flush()
+    _scheduler_lock_file = lock_file
+    return True
+
+
 def start_email_challenge_scheduler(app: Flask) -> None:
     """Start the daily daemon thread once (safe under Flask debug reloader)."""
     global _scheduler_started
 
-    # Flask debug reloader runs the app twice; only start in the child process.
-    if app.debug and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+    # Prefer starting only in the Werkzeug reloader child when that env is set.
+    # create_app() often runs before app.debug is True, so also use a file lock.
+    run_main = os.environ.get("WERKZEUG_RUN_MAIN")
+    if run_main is not None and run_main != "true":
         return
 
     with _scheduler_lock:
         if _scheduler_started:
+            return
+        if not _acquire_process_lock(app):
+            logger.info(
+                "EMAIL_CHALLENGE scheduler not started "
+                "(another process already holds the lock)"
+            )
             return
         _scheduler_started = True
 

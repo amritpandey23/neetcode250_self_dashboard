@@ -9,7 +9,7 @@ Daily random-problem email challenge: Settings page + SMTP/console delivery + da
 - Opt-in via `User.email_challenge_enabled`; email required when enabling
 - Per-user send time + IANA timezone in Settings (browser autodetect); scheduler evaluates due time in the user's zone
 - Picks random **unsolved** problem (`status != done`)
-- Background daemon thread started from `create_app`, guarded for Flask debug reloader
+- Background daemon thread started from `create_app`; process file-lock + atomic DB claim before send (prevents Flask reloader double-email)
 - External links in scheduled emails use `APP_BASE_URL` when no request context
 
 ## Next steps
