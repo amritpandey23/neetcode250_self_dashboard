@@ -185,7 +185,7 @@ PROGRESS_RANGE_OPTIONS = (
 
 
 def _progress_timeline(user_id, days=7):
-    """Build cumulative attempted/done series for the last N days.
+    """Build per-day attempted/done counts for the last N days.
 
     Approximated from current progress timestamps (no event log):
     - attempted: last_practiced_at / updated_at for attempted+done
@@ -228,9 +228,6 @@ def _progress_timeline(user_id, days=7):
             if attempted_at is not None:
                 attempt_times.append(attempted_at)
 
-    attempt_times.sort()
-    done_times.sort()
-
     labels = []
     attempted_series = []
     done_series = []
@@ -238,8 +235,10 @@ def _progress_timeline(user_id, days=7):
         day = start + timedelta(days=offset)
         day_end = day + timedelta(days=1)
         labels.append(day.strftime("%b %d"))
-        attempted_series.append(sum(1 for ts in attempt_times if ts < day_end))
-        done_series.append(sum(1 for ts in done_times if ts < day_end))
+        attempted_series.append(
+            sum(1 for ts in attempt_times if day <= ts < day_end)
+        )
+        done_series.append(sum(1 for ts in done_times if day <= ts < day_end))
 
     return {
         "days": days,

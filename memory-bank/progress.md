@@ -20,7 +20,7 @@
 - Reset progress to clean slate (keeps bookmark)
 - List: LeetCode beside name; status as icons
 - Contests page + dashboard preview (upcoming weekly/biweekly from LeetCode)
-- Dashboard cumulative progress line chart (1W/2W/1M/3M)
+- Dashboard per-day progress line chart (1W/2W/1M/3M)
 - Overview Dashboard separated from Problems browser (`/problems`)
 - Document Spaces (CRUD, sidebar entry tree, preview/edit, shared markdown editor)
 - AI Coach chat on problem detail (Gemini)

@@ -67,7 +67,7 @@
       <header class="progress-chart-head">
         <div>
           <p class="section-label" id="progress-chart-title">Progress</p>
-          <p class="aging-preview-sub muted">Cumulative attempted and solved over time</p>
+          <p class="aging-preview-sub muted">Attempted and solved per day</p>
         </div>
         <div class="range-tabs" role="tablist" aria-label="Timeline range">
           {% for days, label in progress_timeline.options %}
@@ -85,7 +85,7 @@
           id="progress-chart"
           width="640"
           height="180"
-          aria-label="Line chart of cumulative attempted and solved problems"
+          aria-label="Line chart of attempted and solved problems per day"
           data-labels='{{ progress_timeline.labels|tojson }}'
           data-attempted='{{ progress_timeline.attempted|tojson }}'
           data-done='{{ progress_timeline.done|tojson }}'
