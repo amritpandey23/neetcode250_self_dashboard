@@ -21,6 +21,7 @@
 4. Problem link/unlink entry → upsert/delete `ProblemEntryLink` (ownership via Space.user_id)
 5. Settings → save email/opt-in; optional immediate test send via `email_challenge.send_challenge_for_user`
 6. Daily scheduler → opted-in users → random unsolved problem → SMTP or console log
+7. AI Coach chat → client sends selected Gemini model → `resolve_model` validates against Models API list → `generateContent`
 
 ## Patterns
 - Progress map built once per dashboard request (`problem_id → Progress`)
@@ -31,3 +32,4 @@
 - Theme: `data-theme` on `<html>`, CSS variables for all surfaces/ink/accents; JS `themechange` for Chart.js + Mermaid
 - Schema migrations via `ensure_schema()` `PRAGMA` + `ALTER TABLE` (users + progress)
 - Email delivery abstracted in `app/email_challenge.py` (shared by Settings test + daily job)
+- Gemini model list cached in-process (`list_chat_models`, 1h TTL); UI selection persisted in localStorage

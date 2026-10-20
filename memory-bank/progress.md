@@ -23,7 +23,7 @@
 - Dashboard per-day progress line chart (1W/2W/1M/3M)
 - Overview Dashboard separated from Problems browser (`/problems`)
 - Document Spaces (CRUD, sidebar entry tree, preview/edit, shared markdown editor)
-- AI Coach chat on problem detail (Gemini)
+- AI Coach chat on problem detail (Gemini) with selectable model dropdown (live Models API list)
 - Link Spaces entries to problems (`ProblemEntryLink` + problem page UI)
 - Dark/light theme toggle with tokenized CSS + chart/mermaid sync
 - Edit per-problem LeetCode URL on problem detail (seed won’t overwrite)

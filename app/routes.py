@@ -18,7 +18,12 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.activity import activity_count, activity_icon, log_activity, recent_activity
-from app.gemini import GeminiError, chat as gemini_chat
+from app.gemini import (
+    GeminiError,
+    chat as gemini_chat,
+    list_chat_models,
+    resolve_model,
+)
 from app.models import DocCategory, DocEntry, Problem, ProblemEntryLink, Progress, Space
 from app.schema import AGING_MAX_SOLVES, AGING_WEEKS
 
@@ -805,7 +810,14 @@ def problem_detail(slug):
     linked_ids = {item["entry"].id for item in linked_entries}
     entry_options = _user_entry_options(current_user.id, exclude_entry_ids=linked_ids)
 
-    gemini_configured = bool(current_app.config.get("GEMINI_API_KEY"))
+    gemini_api_key = current_app.config.get("GEMINI_API_KEY", "")
+    gemini_configured = bool(gemini_api_key)
+    gemini_model = current_app.config.get("GEMINI_MODEL", "gemini-2.5-flash")
+    gemini_models = (
+        list_chat_models(gemini_api_key, default_model=gemini_model)
+        if gemini_configured
+        else []
+    )
     return render_template(
         "problem_detail.html",
         problem=problem,
@@ -820,7 +832,8 @@ def problem_detail(slug):
         aging_weeks=AGING_WEEKS,
         aging_max_solves=AGING_MAX_SOLVES,
         gemini_configured=gemini_configured,
-        gemini_model=current_app.config.get("GEMINI_MODEL", "gemini-2.5-flash"),
+        gemini_model=gemini_model,
+        gemini_models=gemini_models,
         linked_entries=linked_entries,
         entry_options=entry_options,
     )
@@ -914,11 +927,18 @@ def problem_chat(slug):
     message = payload.get("message", "")
     history = payload.get("history") or []
     context = payload.get("context") or {}
+    api_key = current_app.config.get("GEMINI_API_KEY", "")
+    default_model = current_app.config.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model = resolve_model(
+        payload.get("model"),
+        api_key,
+        default_model=default_model,
+    )
 
     try:
         answer = gemini_chat(
-            api_key=current_app.config.get("GEMINI_API_KEY", ""),
-            model=current_app.config.get("GEMINI_MODEL", "gemini-2.5-flash"),
+            api_key=api_key,
+            model=model,
             problem=problem,
             message=message,
             history=history,
@@ -930,7 +950,7 @@ def problem_chat(slug):
         current_app.logger.exception("Unexpected Gemini chat failure")
         return jsonify({"error": "Unexpected AI error."}), 500
 
-    return jsonify({"reply": answer})
+    return jsonify({"reply": answer, "model": model})
 
 
 @main_bp.route("/problem/<slug>/bookmark", methods=["POST"])

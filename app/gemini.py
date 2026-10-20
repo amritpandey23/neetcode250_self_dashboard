@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import ssl
+import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -18,6 +20,19 @@ API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 MAX_HISTORY_TURNS = 16
 MAX_MESSAGE_CHARS = 8000
 MAX_NOTES_CHARS = 12000
+MODELS_CACHE_TTL_SECONDS = 3600
+
+# Used when the Models API is unreachable so the coach still has choices.
+FALLBACK_MODELS = (
+    {"id": "gemini-2.5-flash", "display_name": "Gemini 2.5 Flash"},
+    {"id": "gemini-2.5-pro", "display_name": "Gemini 2.5 Pro"},
+    {"id": "gemini-2.0-flash", "display_name": "Gemini 2.0 Flash"},
+    {"id": "gemini-flash-latest", "display_name": "Gemini Flash (latest)"},
+    {"id": "gemini-pro-latest", "display_name": "Gemini Pro (latest)"},
+)
+
+_models_cache = {"key": None, "expires_at": 0.0, "models": None}
+_models_lock = threading.Lock()
 
 
 class GeminiError(Exception):
@@ -40,6 +55,122 @@ def _truncate(text, limit):
         return text
     return text[: limit - 1].rstrip() + "…"
 
+
+def _model_id(name):
+    name = (name or "").strip()
+    if name.startswith("models/"):
+        return name[len("models/") :]
+    return name
+
+
+def _normalize_model_entry(item):
+    if not isinstance(item, dict):
+        return None
+    methods = item.get("supportedGenerationMethods") or []
+    if "generateContent" not in methods:
+        return None
+    model_id = _model_id(item.get("name") or item.get("baseModelId") or "")
+    # Coach chat only needs Gemini text/multimodal generation models.
+    if not model_id.startswith("gemini-"):
+        return None
+    # Skip specialized endpoints that are a poor fit for coaching chat.
+    lowered = model_id.lower()
+    skip_tokens = (
+        "-tts",
+        "-image",
+        "-live",
+        "computer-use",
+        "transcribe",
+        "robotics",
+        "nano-banana",
+    )
+    if any(token in lowered for token in skip_tokens):
+        return None
+    display = (item.get("displayName") or model_id).strip() or model_id
+    return {"id": model_id, "display_name": display}
+
+
+def _fetch_models(api_key):
+    models = []
+    page_token = None
+    while True:
+        query = {"pageSize": "100"}
+        if page_token:
+            query["pageToken"] = page_token
+        url = f"{API_BASE}/models?{urllib.parse.urlencode(query)}"
+        request = urllib.request.Request(
+            url,
+            headers={"x-goog-api-key": api_key},
+            method="GET",
+        )
+        with urllib.request.urlopen(request, context=_ssl_context(), timeout=20) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+
+        for item in payload.get("models") or []:
+            entry = _normalize_model_entry(item)
+            if entry:
+                models.append(entry)
+
+        page_token = payload.get("nextPageToken")
+        if not page_token:
+            break
+
+    # Prefer stable aliases / newer ids first; keep display names from API.
+    models.sort(key=lambda m: m["display_name"].lower())
+    return models
+
+
+def list_chat_models(api_key, default_model=None):
+    """Return Gemini models that support generateContent (cached)."""
+    if not api_key:
+        models = [dict(m) for m in FALLBACK_MODELS]
+    else:
+        now = time.time()
+        with _models_lock:
+            cached = _models_cache
+            if (
+                cached["models"] is not None
+                and cached["key"] == api_key
+                and cached["expires_at"] > now
+            ):
+                models = [dict(m) for m in cached["models"]]
+            else:
+                models = None
+
+        if models is None:
+            try:
+                models = _fetch_models(api_key)
+            except Exception:
+                models = [dict(m) for m in FALLBACK_MODELS]
+            else:
+                if not models:
+                    models = [dict(m) for m in FALLBACK_MODELS]
+                with _models_lock:
+                    _models_cache["key"] = api_key
+                    _models_cache["expires_at"] = now + MODELS_CACHE_TTL_SECONDS
+                    _models_cache["models"] = [dict(m) for m in models]
+
+    default_id = _model_id(default_model) or DEFAULT_MODEL
+    if default_id and not any(m["id"] == default_id for m in models):
+        models.insert(
+            0,
+            {"id": default_id, "display_name": default_id},
+        )
+    return models
+
+
+def resolve_model(requested, api_key, default_model=None):
+    """Pick a valid chat model from the request, falling back to the default."""
+    available = list_chat_models(api_key, default_model=default_model)
+    allowed = {m["id"] for m in available}
+    default_id = _model_id(default_model) or DEFAULT_MODEL
+    if default_id not in allowed and available:
+        default_id = available[0]["id"]
+
+    requested_id = _model_id(requested)
+    if requested_id and requested_id in allowed:
+        return requested_id
+    return default_id
 
 def build_system_instruction(problem, context):
     status = (context or {}).get("status") or "todo"

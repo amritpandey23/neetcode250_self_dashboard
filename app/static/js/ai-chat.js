@@ -10,19 +10,61 @@
   const expandBtn = document.getElementById("ai-chat-expand");
   const fabBtn = document.getElementById("ai-chat-fab");
   const suggestions = document.getElementById("ai-chat-suggestions");
+  const modelSelect = document.getElementById("ai-chat-model");
   if (!shell || !chat || !messagesEl || !form || !input || !sendBtn) return;
 
   const enabled = chat.dataset.enabled === "1";
   const chatUrl = chat.dataset.chatUrl;
   const slug = chat.dataset.slug || "unknown";
   const problemName = chat.dataset.problemName || "this problem";
+  const defaultModel = chat.dataset.model || "";
   const storageKey = `neetcode250:ai-chat:${slug}`;
   const collapseKey = "neetcode250:ai-chat-collapsed";
+  const modelKey = "neetcode250:ai-chat-model";
   const desktopMq = window.matchMedia("(min-width: 1101px)");
   const history = [];
   let pending = false;
   let lastFailedPrompt = null;
   let panelVisible = false;
+
+  const MATH_BLOCK = /\$\$([\s\S]+?)\$\$/g;
+  const MATH_INLINE = /\$([^$\n]+?)\$/g;
+  const LATEX_BLOCK = /\\\[([\s\S]+?)\\\]/g;
+  const LATEX_INLINE = /\\\(([\s\S]+?)\\\)/g;
+  const CODEISH = /(```[\s\S]*?```|`[^`\n]+`)/g;
+
+  function getSelectedModel() {
+    if (modelSelect && modelSelect.value) return modelSelect.value;
+    return defaultModel;
+  }
+
+  function restoreModelSelection() {
+    if (!modelSelect) return;
+    let saved = "";
+    try {
+      saved = localStorage.getItem(modelKey) || "";
+    } catch (_err) {
+      saved = "";
+    }
+    const preferred = saved || defaultModel;
+    if (
+      preferred &&
+      Array.from(modelSelect.options).some((opt) => opt.value === preferred)
+    ) {
+      modelSelect.value = preferred;
+    }
+  }
+
+  if (modelSelect) {
+    restoreModelSelection();
+    modelSelect.addEventListener("change", () => {
+      try {
+        localStorage.setItem(modelKey, modelSelect.value);
+      } catch (_err) {
+        /* ignore */
+      }
+    });
+  }
 
   function escapeHtml(text) {
     return String(text ?? "")
@@ -105,15 +147,71 @@
     });
   }
 
+  function renderKatex(tex, displayMode) {
+    if (typeof katex === "undefined") return escapeHtml(tex);
+    try {
+      return katex.renderToString(tex.trim(), {
+        displayMode,
+        throwOnError: false,
+        strict: "ignore",
+      });
+    } catch (err) {
+      const mode = displayMode ? "block" : "inline";
+      return `<span class="md-math-error" title="${escapeHtml(String(err))}">[Invalid ${mode} LaTeX]</span>`;
+    }
+  }
+
+  function protectMathInText(src, slots) {
+    let text = src.replace(MATH_BLOCK, (_, tex) => {
+      const token = `@@MATH${slots.length}@@`;
+      slots.push(renderKatex(tex, true));
+      return token;
+    });
+    text = text.replace(LATEX_BLOCK, (_, tex) => {
+      const token = `@@MATH${slots.length}@@`;
+      slots.push(renderKatex(tex, true));
+      return token;
+    });
+    text = text.replace(MATH_INLINE, (_, tex) => {
+      const token = `@@MATH${slots.length}@@`;
+      slots.push(renderKatex(tex, false));
+      return token;
+    });
+    text = text.replace(LATEX_INLINE, (_, tex) => {
+      const token = `@@MATH${slots.length}@@`;
+      slots.push(renderKatex(tex, false));
+      return token;
+    });
+    return text;
+  }
+
+  function protectMath(src) {
+    const slots = [];
+    const parts = src.split(CODEISH);
+    const text = parts
+      .map((part, index) => {
+        if (index % 2 === 1) return part;
+        return protectMathInText(part, slots);
+      })
+      .join("");
+    return { text, slots };
+  }
+
+  function restoreMath(html, slots) {
+    return html.replace(/@@MATH(\d+)@@/g, (_, index) => slots[Number(index)] || "");
+  }
+
   function renderMarkdown(source) {
     if (typeof marked === "undefined" || typeof DOMPurify === "undefined") {
       return `<p>${escapeHtml(source)}</p>`;
     }
-    const raw = marked.parse(source, { gfm: true, breaks: true });
-    return DOMPurify.sanitize(raw, {
+    const { text, slots } = protectMath(String(source ?? ""));
+    const raw = marked.parse(text, { gfm: true, breaks: true });
+    const clean = DOMPurify.sanitize(raw, {
       ADD_TAGS: ["span"],
       ADD_ATTR: ["class"],
     });
+    return restoreMath(clean, slots);
   }
 
   function scrollToBottom() {
@@ -324,6 +422,7 @@
     sendBtn.disabled = !enabled || isPending || !input.value.trim();
     input.disabled = !enabled || isPending;
     if (clearBtn) clearBtn.disabled = !enabled || isPending;
+    if (modelSelect) modelSelect.disabled = !enabled || isPending;
     if (suggestions) {
       suggestions.querySelectorAll("button").forEach((btn) => {
         btn.disabled = !enabled || isPending;
@@ -366,6 +465,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
+          model: getSelectedModel(),
           history: history.slice(0, -1),
           context: collectContext(),
         }),
@@ -379,6 +479,14 @@
         history.pop();
         persistHistory();
         return;
+      }
+
+      if (
+        data.model &&
+        modelSelect &&
+        Array.from(modelSelect.options).some((opt) => opt.value === data.model)
+      ) {
+        modelSelect.value = data.model;
       }
 
       const reply = data.reply || "";

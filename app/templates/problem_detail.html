@@ -313,7 +313,7 @@
       <div class="ai-chat-heading">
         <strong>AI Coach</strong>
         <p class="ai-chat-context">{{ problem.name }}</p>
-        <p class="ai-chat-meta muted">Uses current problem, status, and notes · <span class="ai-chat-model">{{ gemini_model }}</span></p>
+        <p class="ai-chat-meta muted">Uses current problem, status, and notes</p>
       </div>
     </div>
     <div class="ai-chat-header-actions">
@@ -339,6 +339,18 @@
       </button>
     </div>
   </header>
+  {% if gemini_configured and gemini_models %}
+  <div class="ai-chat-model-row">
+    <label class="ai-chat-model-label" for="ai-chat-model">Model</label>
+    <select id="ai-chat-model" class="ai-chat-model-select">
+      {% for model in gemini_models %}
+      <option value="{{ model.id }}" {% if model.id == gemini_model %}selected{% endif %}>
+        {{ model.display_name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
 
   <div class="ai-chat-messages" id="ai-chat-messages" aria-live="polite"></div>
 

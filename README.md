@@ -53,7 +53,7 @@ Set `SECRET_KEY` in the environment before deploying anywhere beyond local use.
 
 ## AI coach (Gemini)
 
-Each problem page has a right-side AI chat that uses your live status and notes as context.
+Each problem page has a right-side AI chat that uses your live status and notes as context. A model dropdown lists Gemini models available to your API key that support chat (`generateContent`, excluding TTS/live/image specialists; cached); `GEMINI_MODEL` is the default selection.
 
 Locally, set values in `.env` (loaded automatically via `python-dotenv`):
 
