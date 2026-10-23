@@ -32,6 +32,7 @@
 - UI refinement: developer-tool hierarchy (hero/continue/stats/sidebar/rows/filters/nav/roadmap), less card clutter, responsive mobile list/filters/drawer
 - Spaces + auth polish: denser space rows, sidebar hierarchy, document reading width/typography/outline, login/register consistency + password reveal
 - Settings page: notification email + daily challenge opt-in + Send test email (SMTP or console)
+- Shared question of the day: one problem per server-local date, emailed only to opted-in users, shown on every dashboard
 
 ## Left / nice-to-have
 - Soft delete / richer account settings

@@ -18,6 +18,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.activity import activity_count, activity_icon, log_activity, recent_activity
+from app.email_challenge import question_of_the_day
 from app.gemini import (
     GeminiError,
     chat as gemini_chat,
@@ -394,6 +395,9 @@ def dashboard():
 
     contest_preview = get_upcoming_contests(limit_per_kind=1)
     progress_timeline = _progress_timeline(current_user.id, range_days)
+    qotd_problem = question_of_the_day()
+    qotd_entry = progress_by_id.get(qotd_problem.id) if qotd_problem else None
+    qotd_status = qotd_entry.status if qotd_entry else "todo"
 
     return render_template(
         "dashboard.html",
@@ -407,6 +411,8 @@ def dashboard():
         activity_icon=activity_icon,
         contest_preview=contest_preview,
         progress_timeline=progress_timeline,
+        qotd_problem=qotd_problem,
+        qotd_status=qotd_status,
         statuses=Progress.STATUSES,
         status_labels=Progress.STATUS_LABELS,
     )

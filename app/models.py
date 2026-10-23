@@ -59,6 +59,19 @@ class Problem(db.Model):
     progress_entries = db.relationship("Progress", back_populates="problem")
 
 
+class DailyChallenge(db.Model):
+    """One shared problem per server-local calendar day, shown to every user."""
+
+    __tablename__ = "daily_challenges"
+
+    id = db.Column(db.Integer, primary_key=True)
+    challenge_date = db.Column(db.Date, unique=True, nullable=False, index=True)
+    problem_id = db.Column(db.Integer, db.ForeignKey("problems.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow)
+
+    problem = db.relationship("Problem")
+
+
 class Progress(db.Model):
     __tablename__ = "progress"
     __table_args__ = (

@@ -1,4 +1,4 @@
-"""Daily random-problem email challenge: pick, send, and schedule."""
+"""Shared question of the day: pick once, show everyone, email opted-in users."""
 
 from __future__ import annotations
 
@@ -13,9 +13,10 @@ from zoneinfo import ZoneInfo
 
 from flask import Flask, current_app, url_for
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 
 from app import db
-from app.models import Problem, Progress, User
+from app.models import DailyChallenge, Problem, User
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +46,33 @@ def _user_local_now(user: User, now_utc: datetime | None = None) -> datetime:
     return now_utc.astimezone(_user_zone(user))
 
 
-def pick_random_unsolved(user_id: int) -> Problem | None:
-    """Return a random problem the user has not marked done."""
-    done_ids = db.session.query(Progress.problem_id).filter_by(
-        user_id=user_id, status="done"
-    )
-    return (
-        Problem.query.filter(~Problem.id.in_(done_ids))
-        .order_by(db.func.random())
-        .first()
-    )
+def challenge_today() -> date:
+    """Calendar day for the shared question (server local time)."""
+    return datetime.now().astimezone().date()
+
+
+def question_of_the_day(on: date | None = None) -> Problem | None:
+    """Return the shared problem for one calendar day. Stable for every user."""
+    on = on or challenge_today()
+    existing = DailyChallenge.query.filter_by(challenge_date=on).first()
+    if existing is not None and existing.problem is not None:
+        return existing.problem
+
+    problem = Problem.query.order_by(db.func.random()).first()
+    if problem is None:
+        return None
+
+    row = DailyChallenge(challenge_date=on, problem_id=problem.id)
+    try:
+        db.session.add(row)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        existing = DailyChallenge.query.filter_by(challenge_date=on).first()
+        if existing is not None and existing.problem is not None:
+            return existing.problem
+        raise
+    return problem
 
 
 def _difficulty_color(difficulty: str) -> str:
@@ -85,7 +103,7 @@ def _escape(value: str) -> str:
 def _build_plain_body(user: User, problem: Problem, app_url: str) -> str:
     return (
         f"Hi {user.username},\n\n"
-        f"Your random NeetCode challenge for today:\n\n"
+        f"Today’s question of the day (same problem for everyone):\n\n"
         f"  {problem.name}\n"
         f"  Difficulty: {problem.difficulty}\n"
         f"  Category:   {problem.category}\n\n"
@@ -104,7 +122,7 @@ def _build_html_body(user: User, problem: Problem, app_url: str) -> str:
     diff_bg = _difficulty_bg(problem.difficulty)
     leetcode_url = _escape(problem.leetcode_url)
     dash_url = _escape(app_url)
-    today = datetime.now().strftime("%A, %b %d").replace(" 0", " ")
+    today = challenge_today().strftime("%A, %b %-d")
 
     return f"""\
 <!DOCTYPE html>
@@ -135,7 +153,7 @@ def _build_html_body(user: User, problem: Problem, app_url: str) -> str:
           <tr>
             <td style="padding:28px;">
               <p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#374151;">
-                Hi <strong style="color:#111827;">{username}</strong> — here’s a random unsolved problem from your list.
+                Hi <strong style="color:#111827;">{username}</strong> — here’s today’s question. Everyone gets the same problem.
               </p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;border:1px solid #e5e7eb;border-radius:12px;">
                 <tr>
@@ -260,10 +278,10 @@ def send_problem_email(user: User, problem: Problem, app_url: str | None = None)
 
 
 def send_challenge_for_user(user: User, *, mark_sent: bool = False) -> Problem | None:
-    """Pick a random unsolved problem and email it. Returns the problem or None."""
-    problem = pick_random_unsolved(user.id)
+    """Email today's shared question. Returns the problem or None."""
+    problem = question_of_the_day()
     if problem is None:
-        logger.info("EMAIL_CHALLENGE skip user=%s: no unsolved problems", user.username)
+        logger.info("EMAIL_CHALLENGE skip user=%s: no question of the day", user.username)
         return None
     send_problem_email(user, problem)
     if mark_sent:
@@ -327,8 +345,13 @@ def _is_challenge_due(user: User, now_utc: datetime | None = None) -> bool:
 
 
 def run_daily_challenge_for_all() -> int:
-    """Send today's challenge to every opted-in user who is due. Returns emails sent."""
+    """Email today's shared question to every opted-in user who is due."""
     now_utc = datetime.now(timezone.utc)
+    problem = question_of_the_day()
+    if problem is None:
+        logger.info("EMAIL_CHALLENGE skip: no problems in the catalog")
+        return 0
+
     users = User.query.filter(
         User.email_challenge_enabled.is_(True),
         User.email.isnot(None),
@@ -343,13 +366,6 @@ def run_daily_challenge_for_all() -> int:
         if not _claim_daily_send(user.id, local_today):
             continue
         try:
-            problem = pick_random_unsolved(user.id)
-            if problem is None:
-                logger.info(
-                    "EMAIL_CHALLENGE skip user=%s: no unsolved problems",
-                    user.username,
-                )
-                continue
             send_problem_email(user, problem)
             sent += 1
         except Exception:
@@ -372,7 +388,7 @@ def _scheduler_loop(app: Flask) -> None:
     with app.app_context():
         logger.info(
             "EMAIL_CHALLENGE scheduler started "
-            "(checks every 60s for per-user local send times)"
+            "(one shared question per local day; checks every 60s for each user's send time)"
         )
         while True:
             try:

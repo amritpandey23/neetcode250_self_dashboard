@@ -9,6 +9,7 @@ Grinding NeetCode 250 without a personal tracker makes it easy to lose notes and
 3. Updates status inline or on a detail page
 4. Writes notes (approach, complexity, mistakes)
 5. Filters the list and reads overall completion %
+6. Sees one shared question of the day on the dashboard; opted-in users also get that same problem by email
 
 ## UX goals
 - Fast to update status from the list

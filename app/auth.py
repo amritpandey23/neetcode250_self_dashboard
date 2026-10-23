@@ -109,7 +109,7 @@ def settings():
                 try:
                     problem = send_challenge_for_user(current_user)
                     if problem is None:
-                        flash("No unsolved problems left to email.", "info")
+                        flash("No question of the day is available yet.", "info")
                     elif mail_configured:
                         flash(
                             f"Test email sent to {email} ({problem.name}).",

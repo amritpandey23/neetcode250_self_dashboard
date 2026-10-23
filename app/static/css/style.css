@@ -930,6 +930,68 @@ textarea:focus {
 
 .continue-card .btn { justify-self: start; margin-top: 0.2rem; }
 
+.qotd {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.35rem 0.7rem;
+  margin: 0 0 1rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.qotd-main {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.7rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.qotd .section-label { margin: 0; }
+
+.qotd-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.qotd-title:hover { color: var(--accent-deep); }
+
+.qotd-meta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: var(--meta-size);
+}
+
+.qotd-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.qotd-actions .btn {
+  padding: 0.28rem 0.55rem;
+  font-size: 12.5px;
+}
+
 /* ---------- Stats ---------- */
 .overview-page {
   width: min(1080px, 100%);
@@ -3703,6 +3765,11 @@ body:has(.problem-shell) .site-main {
     padding-left: 0;
     padding-top: 1rem;
   }
+
+  .qotd-main { flex-wrap: wrap; }
+  .qotd-title { flex: 1 1 8rem; }
+  .qotd-meta { flex: 1 1 100%; }
+  .qotd-actions { margin-left: 0; }
 
   .stat-row { grid-template-columns: 1fr; }
   .stat { border-right: 0; border-bottom: 1px solid var(--line); }

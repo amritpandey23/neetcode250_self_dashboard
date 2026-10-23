@@ -44,6 +44,32 @@
     {% endif %}
   </section>
 
+  {% if qotd_problem %}
+  <section class="qotd" aria-labelledby="qotd-title">
+    <div class="qotd-main">
+      <p class="section-label" id="qotd-title">Question of the day</p>
+      <a class="qotd-title" href="{{ url_for('main.problem_detail', slug=qotd_problem.slug, next=url_for('main.dashboard')) }}">
+        {{ qotd_problem.name }}
+      </a>
+      <p class="qotd-meta">
+        <span>{{ qotd_problem.category }}</span>
+        <span class="meta-sep" aria-hidden="true">·</span>
+        <span class="diff diff-{{ qotd_problem.difficulty|lower }}">{{ qotd_problem.difficulty }}</span>
+        <span class="meta-sep" aria-hidden="true">·</span>
+        {{ status_badge(qotd_status, status_labels[qotd_status]) }}
+      </p>
+    </div>
+    <div class="qotd-actions">
+      <a class="btn btn-primary btn-icon" href="{{ url_for('main.problem_detail', slug=qotd_problem.slug, next=url_for('main.dashboard')) }}">
+        <span>Open</span>{{ icon('arrow-right') }}
+      </a>
+      <a class="btn btn-ghost btn-icon" href="{{ qotd_problem.leetcode_url }}" target="_blank" rel="noopener">
+        <span>LeetCode</span>{{ icon('external-link') }}
+      </a>
+    </div>
+  </section>
+  {% endif %}
+
   <section class="stat-row" aria-label="Status counts">
     <div class="stat">
       <strong>{{ stats.total }}</strong>

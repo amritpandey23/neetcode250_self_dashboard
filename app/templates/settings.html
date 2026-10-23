@@ -7,8 +7,8 @@
     <p class="section-label">Account</p>
     <h1>Settings</h1>
     <p class="lede">
-      Configure where and when daily random-problem challenge emails are sent
-      in your local timezone.
+      Get the shared question of the day by email. Everyone sees the same
+      problem on the dashboard; only opted-in accounts receive the email.
     </p>
   </header>
 
@@ -41,7 +41,7 @@
         value="{{ challenge_time }}"
         required
       >
-      <span class="settings-field-hint">Once per day at this clock time in your timezone.</span>
+      <span class="settings-field-hint">Once per day at this clock time in your timezone. The problem is the same for every recipient.</span>
     </label>
     <label>
       Timezone
@@ -69,7 +69,7 @@
         value="1"
         {% if current_user.email_challenge_enabled %}checked{% endif %}
       >
-      Send me one random unsolved problem every day
+      Email me the question of the day
     </label>
     <div class="settings-actions">
       <button class="btn btn-primary btn-icon" type="submit">
@@ -82,7 +82,7 @@
     <input type="hidden" name="action" value="test_email">
     <h2>Test delivery</h2>
     <p class="settings-hint">
-      Sends one random unsolved problem email immediately so you can verify
+      Sends today’s question of the day immediately so you can verify
       {% if mail_configured %}SMTP{% else %}console logging{% endif %}
       without waiting for the daily schedule.
     </p>

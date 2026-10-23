@@ -13,6 +13,7 @@
 - Spaces: `Space` → `DocCategory` → `DocSection?` → `DocEntry` (user-owned)
 - `ProblemEntryLink` — per-user problem↔entry links (`unique user_id + problem_id + entry_id`)
 - `ActivityLog` — per-user chronological action feed (`action`, `summary`, optional `href`)
+- `DailyChallenge` — one shared problem per server-local date (`unique challenge_date`)
 
 ## Critical paths
 1. Startup → create tables → seed problems from JSON → start email-challenge scheduler thread
@@ -20,8 +21,9 @@
 3. Problem detail POST → upsert Progress row
 4. Problem link/unlink entry → upsert/delete `ProblemEntryLink` (ownership via Space.user_id)
 5. Settings → save email/opt-in; optional immediate test send via `email_challenge.send_challenge_for_user`
-6. Daily scheduler → opted-in users → random unsolved problem → SMTP or console log
-7. AI Coach chat → client sends selected Gemini model → `resolve_model` validates against Models API list → `generateContent`
+6. Daily scheduler → `question_of_the_day()` (one server-local-day problem) → opted-in users at their local send time → SMTP or console log
+7. Dashboard → same `question_of_the_day()` for every logged-in user
+8. AI Coach chat → client sends selected Gemini model → `resolve_model` validates against Models API list → `generateContent`
 
 ## Patterns
 - Progress map built once per dashboard request (`problem_id → Progress`)
@@ -33,3 +35,4 @@
 - Schema migrations via `ensure_schema()` `PRAGMA` + `ALTER TABLE` (users + progress)
 - Email delivery abstracted in `app/email_challenge.py` (shared by Settings test + daily job)
 - Gemini model list cached in-process (`list_chat_models`, 1h TTL); UI selection persisted in localStorage
+- Question of the day is one `DailyChallenge` row per server-local date; emails and the dashboard both read it
