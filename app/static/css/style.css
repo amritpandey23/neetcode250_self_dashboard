@@ -1903,6 +1903,7 @@ textarea:focus {
   max-height: 360px;
   overflow: auto;
   padding-right: 0.15rem;
+  align-content: start;
 }
 
 .activity-date {
