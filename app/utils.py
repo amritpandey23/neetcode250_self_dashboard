@@ -4,6 +4,18 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+DEFAULT_TIMEZONE = "UTC"
+
+
+def user_timezone(user):
+    """Return the user's display timezone, falling back to UTC."""
+    name = (getattr(user, "email_challenge_timezone", None) or DEFAULT_TIMEZONE).strip()
+    try:
+        return ZoneInfo(name)
+    except Exception:
+        return ZoneInfo(DEFAULT_TIMEZONE)
 
 
 def slugify(text, fallback="item"):

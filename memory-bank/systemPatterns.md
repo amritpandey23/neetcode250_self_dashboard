@@ -24,6 +24,7 @@
 6. Daily scheduler → `question_of_the_day()` (one server-local-day problem) → opted-in users at their local send time → SMTP or console log
 7. Dashboard → same `question_of_the_day()` for every logged-in user
 8. AI Coach chat → client sends selected Gemini model → `resolve_model` validates against Models API list → `generateContent`
+9. Contests page → cached LeetCode GraphQL + CodeChef JSON + Codeforces API feeds → normalized upcoming contests → server-built Sunday-first month calendar (desktop grid, mobile agenda) in the user's timezone
 
 ## Patterns
 - Progress map built once per dashboard request (`problem_id → Progress`)
@@ -36,3 +37,7 @@
 - Email delivery abstracted in `app/email_challenge.py` (shared by Settings test + daily job)
 - Gemini model list cached in-process (`list_chat_models`, 1h TTL); UI selection persisted in localStorage
 - Question of the day is one `DailyChallenge` row per server-local date; emails and the dashboard both read it
+- Contest sources cached per platform (1h TTL), normalized to a common shape (`platform`, `start`, `end`, `url`, `calendar`); a source failure degrades gracefully
+- Contest calendar is built server-side (Sunday-first weeks + flat agenda); dates/times are displayed in the user's `email_challenge_timezone` (`user_timezone()`), defaulting to UTC
+- Dashboard uses a 75% main column + 25% right rail: difficulty donut + progress chart on the left, streak calendar + contest mini-calendar stacked in the rail
+- Streak data is derived from `Progress` (`completed_at`, `last_practiced_at`, `updated_at`) plus `ActivityLog` status/practice rows; solved days win over attempted days, and both count toward current/best streaks

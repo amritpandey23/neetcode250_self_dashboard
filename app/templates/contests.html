@@ -1,109 +1,119 @@
 {% extends "base.html" %}
 {% from "macros.html" import icon, contest_calendar_menu %}
 {% block title %}Contests · NeetCode 250{% endblock %}
+
+{% macro contest_event(contest) -%}
+<div class="cal-event platform-{{ contest.platform_key }}{% if contest.is_live %} is-live{% endif %}">
+  <a class="cal-event-link" href="{{ contest.url }}" target="_blank" rel="noopener"
+     title="{{ contest.title }} · {{ contest.start_display }} · {{ contest.duration_minutes }} min">
+    <span class="cal-event-top">
+      <span class="cal-dot" aria-hidden="true"></span>
+      <span class="cal-event-time">{{ contest.start_time }}</span>
+      <span class="cal-event-rel">{{ contest.relative }}</span>
+    </span>
+    <span class="cal-event-name">{{ contest.title }}</span>
+  </a>
+  {{ contest_calendar_menu(contest, true) }}
+</div>
+{%- endmacro %}
+
 {% block content %}
 <section class="dash-hero">
   <div>
-    <p class="eyebrow">LeetCode schedule</p>
+    <p class="eyebrow">Contest schedule</p>
     <h1>{{ icon('trophy') }} Contests</h1>
-    <p class="lede">
-      Upcoming weekly and biweekly contests from
-      <a href="{{ schedule.source }}" target="_blank" rel="noopener">leetcode.com/contest</a>.
-      Add any contest to Google, Outlook, or download an .ics file.
-    </p>
   </div>
-  <a class="btn btn-ghost btn-icon" href="{{ url_for('main.contests', refresh=1) }}">
+  <a class="btn btn-ghost btn-icon hero-action" href="{{ url_for('main.contests', refresh=1, month=month_param) }}">
     {{ icon('refresh-cw') }}<span>Refresh</span>
   </a>
 </section>
 
-{% if schedule.error and not schedule.weekly and not schedule.biweekly %}
+{% if schedule.error and not schedule.all %}
 <div class="empty-panel">
   <p class="empty">
     {{ icon('wifi-off') }}
-    Couldn’t load contest schedule right now. Try refresh in a moment.
+    Couldn’t load the contest schedule right now. Try refresh in a moment.
   </p>
 </div>
 {% else %}
-{% if schedule.error %}
+{% if schedule.failed_sources %}
 <p class="muted contest-stale-note">
-  {{ icon('info') }} Showing cached schedule (live refresh failed).
+  {{ icon('info') }}
+  Live refresh failed for {{ schedule.failed_sources|join(' and ') }} — results may be incomplete.
 </p>
 {% endif %}
 
-<div class="contest-grid">
-  <section class="contest-column" aria-labelledby="weekly-title">
-    <header class="contest-column-head">
-      <h2 id="weekly-title">{{ icon('calendar-days') }} Weekly</h2>
-      <p class="muted">Usually every Sunday</p>
-    </header>
-    {% if schedule.weekly %}
-    <div class="contest-list">
-      {% for contest in schedule.weekly %}
-      <article class="contest-card {% if contest.is_live %}is-live{% endif %}">
-        <div class="contest-card-main">
-          <p class="contest-kind">{{ contest.kind_label }}</p>
-          <h3>
-            <a href="{{ contest.url }}" target="_blank" rel="noopener">
-              {{ contest.title }}
-              {{ icon('external-link') }}
-            </a>
-          </h3>
-          <p class="contest-when">{{ contest.start_display }}</p>
-          <p class="muted">Duration {{ contest.duration_minutes }} minutes</p>
-          <div class="contest-card-actions">
-            {{ contest_calendar_menu(contest) }}
-          </div>
-        </div>
-        <span class="contest-relative {% if contest.is_live %}is-live{% endif %}">
-          {{ contest.relative }}
-        </span>
-      </article>
+<section class="contest-calendar-panel" aria-labelledby="contest-month-title">
+  <header class="cal-toolbar">
+    <div class="cal-nav">
+      <a class="btn btn-ghost btn-icon cal-nav-btn" href="{{ url_for('main.contests', month=prev_month) }}"
+         aria-label="Previous month" title="Previous month">
+        {{ icon('chevron-left') }}
+      </a>
+      <h2 id="contest-month-title">{{ month_label }}</h2>
+      <a class="btn btn-ghost btn-icon cal-nav-btn" href="{{ url_for('main.contests', month=next_month) }}"
+         aria-label="Next month" title="Next month">
+        {{ icon('chevron-right') }}
+      </a>
+    </div>
+    <div class="cal-toolbar-meta">
+      <span class="contest-legend">
+        <span class="legend-item"><span class="cal-dot dot-leetcode" aria-hidden="true"></span>LeetCode</span>
+        <span class="legend-item"><span class="cal-dot dot-codechef" aria-hidden="true"></span>CodeChef</span>
+        <span class="legend-item"><span class="cal-dot dot-codeforces" aria-hidden="true"></span>Codeforces</span>
+      </span>
+      <span class="muted legend-note">{{ schedule.all|length }} upcoming · times in {{ timezone_name }}</span>
+      {% if not is_current_month %}
+      <a class="btn btn-ghost" href="{{ url_for('main.contests') }}">This month</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="cal-grid">
+    <div class="cal-weekdays" aria-hidden="true">
+      {% for label in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
+      <span>{{ label }}</span>
       {% endfor %}
     </div>
-    {% else %}
-    <p class="empty">{{ icon('calendar-x') }} No upcoming weekly contests found.</p>
-    {% endif %}
-  </section>
-
-  <section class="contest-column" aria-labelledby="biweekly-title">
-    <header class="contest-column-head">
-      <h2 id="biweekly-title">{{ icon('calendar-range') }} Biweekly</h2>
-      <p class="muted">Usually every other Saturday</p>
-    </header>
-    {% if schedule.biweekly %}
-    <div class="contest-list">
-      {% for contest in schedule.biweekly %}
-      <article class="contest-card {% if contest.is_live %}is-live{% endif %}">
-        <div class="contest-card-main">
-          <p class="contest-kind">{{ contest.kind_label }}</p>
-          <h3>
-            <a href="{{ contest.url }}" target="_blank" rel="noopener">
-              {{ contest.title }}
-              {{ icon('external-link') }}
-            </a>
-          </h3>
-          <p class="contest-when">{{ contest.start_display }}</p>
-          <p class="muted">Duration {{ contest.duration_minutes }} minutes</p>
-          <div class="contest-card-actions">
-            {{ contest_calendar_menu(contest) }}
-          </div>
+    {% for week in calendar.weeks %}
+    <div class="cal-week">
+      {% for day in week %}
+      <div class="cal-day{% if not day.in_month %} is-outside{% endif %}{% if day.is_today %} is-today{% endif %}">
+        <div class="cal-day-head">
+          <span class="cal-day-num">{{ day.date.day }}</span>
+          {% if day.is_today %}<span class="cal-today-tag">today</span>{% endif %}
         </div>
-        <span class="contest-relative {% if contest.is_live %}is-live{% endif %}">
-          {{ contest.relative }}
-        </span>
-      </article>
+        {% for contest in day.contests %}{{ contest_event(contest) }}{% endfor %}
+      </div>
       {% endfor %}
     </div>
-    {% else %}
-    <p class="empty">{{ icon('calendar-x') }} No upcoming biweekly contests found.</p>
-    {% endif %}
-  </section>
-</div>
+    {% endfor %}
+  </div>
 
-{% if schedule.fetched_at %}
+  <div class="cal-agenda">
+    {% for day in calendar.agenda %}
+    <div class="cal-agenda-row">
+      <div class="cal-agenda-date">
+        <span class="cal-agenda-dow">{{ day.date.strftime('%a') }}</span>
+        <span class="cal-agenda-num">{{ day.date.strftime('%d %b') }}</span>
+      </div>
+      <div class="cal-agenda-events">
+        {% for contest in day.contests %}{{ contest_event(contest) }}{% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if not calendar.agenda %}
+  <p class="empty cal-empty">
+    {{ icon('calendar-x') }} No upcoming contests in {{ month_label }}.
+  </p>
+  {% endif %}
+</section>
+
+{% if fetched_display %}
 <p class="muted contest-fetched">
-  Last fetched {{ schedule.fetched_at.strftime('%Y-%m-%d %H:%M') }} UTC
+  Last fetched {{ fetched_display }}
 </p>
 {% endif %}
 {% endif %}

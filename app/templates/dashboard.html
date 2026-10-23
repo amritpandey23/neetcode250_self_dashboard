@@ -70,26 +70,44 @@
   </section>
   {% endif %}
 
-  <section class="stat-row" aria-label="Status counts">
-    <div class="stat">
-      <strong>{{ stats.total }}</strong>
-      <span class="stat-label">Problems</span>
-    </div>
-    <div class="stat">
-      <strong>{{ stats.counts.attempted }}</strong>
-      <span class="stat-label">Attempted</span>
-    </div>
-    <div class="stat">
-      <strong>{{ stats.counts.done }}</strong>
-      <span class="stat-label">Solved</span>
-    </div>
-  </section>
-
-  {% set show_contests = contest_preview and (contest_preview.next_weekly or contest_preview.next_biweekly) %}
-  {% if progress_timeline or show_contests %}
-  <div class="dash-split {% if progress_timeline and show_contests %}has-both{% elif progress_timeline %}has-chart-only{% else %}has-contests-only{% endif %}">
-    {% if progress_timeline %}
-    <section class="progress-chart-card" aria-labelledby="progress-chart-title">
+  {% set show_contests = contest_preview and contest_preview.all %}
+  <div class="dash-board">
+    <div class="dash-board-main">
+      <div class="dash-widgets">
+    <section class="widget-card difficulty-widget" aria-labelledby="difficulty-widget-title">
+      <header class="widget-head">
+        <div>
+          <p class="section-label" id="difficulty-widget-title">Difficulty progress</p>
+          <p class="aging-preview-sub muted">Easy, Medium and Hard across all categories</p>
+        </div>
+        <span class="widget-badge">{{ difficulty_progress.solved }} / {{ difficulty_progress.total }}</span>
+      </header>
+      <div class="difficulty-body">
+        <div
+          class="difficulty-ring"
+          style="--ring-fill: {{ difficulty_progress.style }};"
+          role="img"
+          aria-label="{{ difficulty_progress.solved }} of {{ difficulty_progress.total }} problems solved: {% for segment in difficulty_progress.segments %}{{ segment.label }} {{ segment.done }} of {{ segment.total }}{% if not loop.last %}, {% endif %}{% endfor %}"
+        >
+          <span class="difficulty-ring-inner">
+            <strong>{{ difficulty_progress.percent }}%</strong>
+            <span>solved</span>
+          </span>
+        </div>
+        <ul class="difficulty-legend">
+          {% for segment in difficulty_progress.segments %}
+          <li class="difficulty-row diff-{{ segment.key }}">
+            <span class="difficulty-dot" aria-hidden="true"></span>
+            <span class="difficulty-label">{{ segment.label }}</span>
+            <span class="difficulty-count"><strong>{{ segment.done }}</strong> / {{ segment.total }}</span>
+            <span class="difficulty-pct">{{ segment.percent }}%</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+      {% if progress_timeline %}
+      <section class="progress-chart-card" aria-labelledby="progress-chart-title">
       <header class="progress-chart-head">
         <div>
           <p class="section-label" id="progress-chart-title">Progress</p>
@@ -124,53 +142,98 @@
     </section>
     {% endif %}
 
+
+      </div>
+    </div>
+
+    <aside class="dash-board-rail">
+    <section class="widget-card streak-widget" aria-labelledby="streak-widget-title">
+      <header class="widget-head">
+        <div>
+          <p class="section-label" id="streak-widget-title">Streak</p>
+          <p class="aging-preview-sub muted">Solve one problem a day to keep your streak</p>
+        </div>
+        <span class="streak-total" aria-label="Current streak: {{ streak.current }} day{% if streak.current != 1 %}s{% endif %}">
+          <span class="streak-flame" aria-hidden="true">{{ icon('flame') }}</span>
+          <strong>{{ streak.current }}</strong>
+          <span>day{% if streak.current != 1 %}s{% endif %}</span>
+        </span>
+      </header>
+      <div class="streak-body">
+        <div class="streak-month">
+          <span>{{ streak.month_label }}</span>
+          <span class="muted">Best {{ streak.best }} day{% if streak.best != 1 %}s{% endif %}</span>
+        </div>
+        <div class="streak-grid" role="group" aria-label="Activity in {{ streak.month_label }}">
+          {% for label in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] %}
+          <span class="streak-dow" aria-hidden="true">{{ label }}</span>
+          {% endfor %}
+          {% for week in streak.weeks %}
+          {% for day in week %}
+          <div
+            class="streak-day{% if not day.in_month %} is-outside{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.status %} status-{{ day.status }}{% endif %}"
+            title="{{ day.date.strftime('%a, %b %d') }}{% if day.status == 'solved' %} · solved{% elif day.status == 'attempted' %} · attempted{% endif %}"
+          >
+            <span class="streak-num">{{ day.date.day }}</span>
+            {% if day.status %}
+            <span class="streak-mark" aria-label="{{ 'Solved' if day.status == 'solved' else 'Attempted' }}">
+              {{ icon('flame' if day.status == 'solved' else 'target') }}
+            </span>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% endfor %}
+        </div>
+        <div class="streak-legend" aria-hidden="true">
+          <span class="streak-key streak-key-attempted">{{ icon('target') }}<span>Attempted</span></span>
+          <span class="streak-key streak-key-solved">{{ icon('flame') }}<span>Solved</span></span>
+        </div>
+      </div>
+    </section>
+
+
     {% if show_contests %}
     <section class="contest-preview" aria-labelledby="contest-preview-title">
       <header class="aging-preview-head">
         <div>
           <p class="section-label" id="contest-preview-title">Upcoming contests</p>
-          <p class="aging-preview-sub muted">Next weekly and biweekly from LeetCode</p>
+          <p class="aging-preview-sub muted">LeetCode · CodeChef · Codeforces</p>
         </div>
         <a class="btn btn-ghost btn-icon" href="{{ url_for('main.contests') }}">
           {{ icon('trophy') }}<span>View schedule</span>
         </a>
       </header>
-      <div class="contest-preview-list">
-        {% if contest_preview.next_weekly %}
-        {% set c = contest_preview.next_weekly %}
-        <div class="contest-preview-item">
-          <a class="contest-preview-link" href="{{ c.url }}" target="_blank" rel="noopener">
-            <div class="aging-preview-main">
-              <strong>{{ c.title }}</strong>
-              <span class="muted">{{ c.start_display }}</span>
-            </div>
-          </a>
-          <div class="contest-preview-meta">
-            <span class="contest-relative">{{ c.relative }}</span>
-            {{ contest_calendar_menu(c, true) }}
-          </div>
+      <a class="mini-cal mini-cal-link"
+         href="{{ url_for('main.contests', month='%04d-%02d'|format(contest_calendar.year, contest_calendar.month)) }}"
+         aria-label="Open the contest calendar for {{ contest_month_label }}">
+        <div class="mini-cal-head">
+          <span>{{ contest_month_label }}</span>
+          <span class="muted">{{ contest_calendar.agenda|length }} contest day{% if contest_calendar.agenda|length != 1 %}s{% endif %}</span>
         </div>
-        {% endif %}
-        {% if contest_preview.next_biweekly %}
-        {% set c = contest_preview.next_biweekly %}
-        <div class="contest-preview-item">
-          <a class="contest-preview-link" href="{{ c.url }}" target="_blank" rel="noopener">
-            <div class="aging-preview-main">
-              <strong>{{ c.title }}</strong>
-              <span class="muted">{{ c.start_display }}</span>
-            </div>
-          </a>
-          <div class="contest-preview-meta">
-            <span class="contest-relative">{{ c.relative }}</span>
-            {{ contest_calendar_menu(c, true) }}
+        <div class="mini-cal-grid">
+          {% for label in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] %}
+          <span class="mini-cal-dow" aria-hidden="true">{{ label }}</span>
+          {% endfor %}
+          {% for week in contest_calendar.weeks %}
+          {% for day in week %}
+          <div class="mini-cal-day{% if not day.in_month %} is-outside{% endif %}{% if day.is_today %} is-today{% endif %}"
+               {% if day.contests %}title="{% for c in day.contests %}{{ c.title }} · {{ c.start_time }}{% if not loop.last %}&#10;{% endif %}{% endfor %}"{% endif %}>
+            <span class="mini-cal-num">{{ day.date.day }}</span>
+            {% if day.contests %}
+            <span class="mini-cal-dots">
+              {% for platform_key in day.platforms %}<span class="cal-dot dot-{{ platform_key }}"></span>{% endfor %}
+            </span>
+            {% endif %}
           </div>
+          {% endfor %}
+          {% endfor %}
         </div>
-        {% endif %}
-      </div>
-    </section>
-    {% endif %}
-  </div>
-  {% endif %}
+      </a>
+      </section>
+      {% endif %}
+    </aside>
+
+  <div class="dash-board-activity">
 
   <div class="activity-split">
     <section class="activity-panel" aria-labelledby="attempted-history-title">
@@ -313,6 +376,9 @@
     <p class="activity-empty muted">No activity yet. Status changes, practice, bookmarks, and Spaces edits will show up here.</p>
     {% endif %}
   </section>
+  </div>
+
+  </div>
 </section>
 {% endblock %}
 

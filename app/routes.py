@@ -1,6 +1,7 @@
+import calendar as _calendar
 import re
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from urllib.parse import urlparse
 
 from flask import (
@@ -25,8 +26,17 @@ from app.gemini import (
     list_chat_models,
     resolve_model,
 )
-from app.models import DocCategory, DocEntry, Problem, ProblemEntryLink, Progress, Space
+from app.models import (
+    ActivityLog,
+    DocCategory,
+    DocEntry,
+    Problem,
+    ProblemEntryLink,
+    Progress,
+    Space,
+)
 from app.schema import AGING_MAX_SOLVES, AGING_WEEKS
+from app.utils import user_timezone
 
 main_bp = Blueprint("main", __name__)
 
@@ -255,6 +265,143 @@ def _progress_timeline(user_id, days=7):
     }
 
 
+DIFFICULTY_SEGMENTS = (
+    ("Easy", "easy"),
+    ("Medium", "medium"),
+    ("Hard", "hard"),
+)
+
+
+def _difficulty_progress(stats):
+    """Build the segmented donut used by the dashboard difficulty card.
+
+    Each difficulty gets an equal third of the ring; the filled part of that
+    third is ``solved / total`` for that difficulty.
+    """
+    segments = []
+    stops = []
+    cursor = 0.0
+    for label, key in DIFFICULTY_SEGMENTS:
+        bucket = stats["by_difficulty"].get(label) or {"total": 0, "done": 0}
+        total = bucket.get("total", 0)
+        done = bucket.get("done", 0)
+        ratio = (done / total) if total else 0
+        end = cursor + 120.0
+        fill_end = cursor + (120.0 * ratio)
+        stops.append(f"var(--{key}) {cursor:.2f}deg {fill_end:.2f}deg")
+        stops.append(f"var(--{key}-bg) {fill_end:.2f}deg {end:.2f}deg")
+        segments.append(
+            {
+                "label": label,
+                "key": key,
+                "done": done,
+                "total": total,
+                "percent": round(ratio * 100),
+            }
+        )
+        cursor = end
+
+    return {
+        "segments": segments,
+        "style": "conic-gradient(" + ", ".join(stops) + ")",
+        "percent": stats["percent"],
+        "solved": stats["solved"],
+        "total": stats["total"],
+    }
+
+
+def _streak_summary(user_id, tz, month=None):
+    """Build the daily streak calendar for the user's local timezone.
+
+    A day is *solved* when a problem was completed (or reviewed) that day and
+    *attempted* when only practice/status activity happened. Both count toward
+    the streak. History comes from Progress timestamps plus the activity log,
+    which preserves days that the current progress row no longer remembers.
+    """
+    zone = tz or timezone.utc
+    today = datetime.now(timezone.utc).astimezone(zone).date()
+    focus = month or date(today.year, today.month, 1)
+
+    day_status = {}
+
+    def mark(stamp, solved):
+        aware = _aware(stamp)
+        if aware is None:
+            return
+        day = aware.astimezone(zone).date()
+        if solved:
+            day_status[day] = "solved"
+        elif day_status.get(day) != "solved":
+            day_status[day] = "attempted"
+
+    entries = Progress.query.filter(Progress.user_id == user_id).all()
+    for entry in entries:
+        if entry.status == "done":
+            mark(entry.completed_at or entry.last_practiced_at or entry.updated_at, True)
+            if entry.last_practiced_at:
+                mark(entry.last_practiced_at, True)
+        elif entry.status == "attempted":
+            mark(entry.last_practiced_at or entry.updated_at, False)
+
+    entry_by_problem = {entry.problem_id: entry for entry in entries}
+    logs = ActivityLog.query.filter(
+        ActivityLog.user_id == user_id,
+        ActivityLog.action.in_(("status_changed", "practice_logged")),
+    ).all()
+    for log in logs:
+        summary = (log.summary or "").strip()
+        if log.action == "practice_logged":
+            entry = entry_by_problem.get(log.entity_id)
+            mark(log.created_at, bool(entry and entry.status == "done"))
+        elif summary.endswith(" as Done"):
+            mark(log.created_at, True)
+        elif summary.endswith(" as Attempted"):
+            mark(log.created_at, False)
+
+    active_days = sorted(day_status)
+    best = 0
+    run = 0
+    previous = None
+    for day in active_days:
+        run = run + 1 if previous and (day - previous).days == 1 else 1
+        best = max(best, run)
+        previous = day
+
+    current = 0
+    cursor = today
+    if cursor not in day_status:
+        # Keep yesterday's streak visible until the current day ends.
+        cursor -= timedelta(days=1)
+    while cursor in day_status:
+        current += 1
+        cursor -= timedelta(days=1)
+
+    grid = _calendar.Calendar(firstweekday=6)
+    weeks = []
+    for week in grid.monthdatescalendar(focus.year, focus.month):
+        row = []
+        for day in week:
+            in_month = day.month == focus.month and day.year == focus.year
+            row.append(
+                {
+                    "date": day,
+                    "in_month": in_month,
+                    "is_today": day == today,
+                    "status": day_status.get(day) if in_month else None,
+                }
+            )
+        weeks.append(row)
+
+    return {
+        "current": current,
+        "best": best,
+        "active_days": len(active_days),
+        "today_status": day_status.get(today),
+        "month_label": focus.strftime("%B %Y"),
+        "weeks": weeks,
+    }
+
+
 def _continue_learning(all_problems, progress_by_id):
     """Pick next problem from existing progress: recent attempt, else first unfinished."""
     recent = None
@@ -391,9 +538,24 @@ def dashboard():
     attempted_recent, solved_history = _activity_lists(current_user.id)
     activity_feed = recent_activity(current_user.id, limit=5)
     activity_total = activity_count(current_user.id)
-    from app.contests import get_upcoming_contests
+    from app.contests import build_month_calendar, get_upcoming_contests
 
-    contest_preview = get_upcoming_contests(limit_per_kind=1)
+    user_tz = user_timezone(current_user)
+    contest_preview = get_upcoming_contests(limit_per_kind=30, tz=user_tz)
+    today_local = datetime.now(timezone.utc).astimezone(user_tz).date()
+    difficulty_progress = _difficulty_progress(stats)
+    streak = _streak_summary(current_user.id, user_tz, today_local)
+    contest_calendar = build_month_calendar(
+        contest_preview["all"], today_local.year, today_local.month, tz=user_tz
+    )
+    if not contest_calendar["agenda"] and contest_preview["all"]:
+        first_start = contest_preview["all"][0]["start_local"]
+        contest_calendar = build_month_calendar(
+            contest_preview["all"], first_start.year, first_start.month, tz=user_tz
+        )
+    contest_month_label = date(
+        contest_calendar["year"], contest_calendar["month"], 1
+    ).strftime("%B %Y")
     progress_timeline = _progress_timeline(current_user.id, range_days)
     qotd_problem = question_of_the_day()
     qotd_entry = progress_by_id.get(qotd_problem.id) if qotd_problem else None
@@ -402,6 +564,8 @@ def dashboard():
     return render_template(
         "dashboard.html",
         stats=stats,
+        difficulty_progress=difficulty_progress,
+        streak=streak,
         continue_learning=continue_learning,
         aging_preview=aging_preview,
         attempted_recent=attempted_recent,
@@ -410,6 +574,9 @@ def dashboard():
         activity_total=activity_total,
         activity_icon=activity_icon,
         contest_preview=contest_preview,
+        contest_calendar=contest_calendar,
+        contest_month_label=contest_month_label,
+        contest_timezone_name=str(user_tz),
         progress_timeline=progress_timeline,
         qotd_problem=qotd_problem,
         qotd_status=qotd_status,
@@ -588,11 +755,46 @@ def aging():
 @main_bp.route("/contests")
 @login_required
 def contests():
-    from app.contests import get_upcoming_contests
+    from app.contests import build_month_calendar, get_upcoming_contests
 
     force = request.args.get("refresh") == "1"
-    schedule = get_upcoming_contests(limit_per_kind=4, force_refresh=force)
-    return render_template("contests.html", schedule=schedule)
+    user_tz = user_timezone(current_user)
+    schedule = get_upcoming_contests(limit_per_kind=30, force_refresh=force, tz=user_tz)
+
+    today = datetime.now(timezone.utc).astimezone(user_tz).date()
+    month_arg = (request.args.get("month") or "").strip()
+    try:
+        year_str, month_str = month_arg.split("-")
+        year, month = int(year_str), int(month_str)
+        if not (2000 <= year <= 2100 and 1 <= month <= 12):
+            raise ValueError
+        if month_arg != f"{year:04d}-{month:02d}":
+            raise ValueError
+    except ValueError:
+        year, month = today.year, today.month
+
+    first_of_month = date(year, month, 1)
+    prev_month = (first_of_month - timedelta(days=1)).strftime("%Y-%m")
+    next_month = (date(year + (month == 12), month % 12 + 1, 1)).strftime("%Y-%m")
+
+    fetched_display = None
+    if schedule["fetched_at"] is not None:
+        fetched_display = schedule["fetched_at"].astimezone(user_tz).strftime(
+            "%Y-%m-%d %H:%M %Z"
+        )
+
+    return render_template(
+        "contests.html",
+        schedule=schedule,
+        calendar=build_month_calendar(schedule["all"], year, month, tz=user_tz),
+        month_label=first_of_month.strftime("%B %Y"),
+        month_param=f"{year:04d}-{month:02d}",
+        prev_month=prev_month,
+        next_month=next_month,
+        is_current_month=(year, month) == (today.year, today.month),
+        timezone_name=str(user_tz),
+        fetched_display=fetched_display,
+    )
 
 
 @main_bp.route("/contests/<slug>/calendar.ics")

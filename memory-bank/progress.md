@@ -19,7 +19,7 @@
 - Dashboard aging preview (top 3 + weeks elapsed)
 - Reset progress to clean slate (keeps bookmark)
 - List: LeetCode beside name; status as icons
-- Contests page + dashboard preview (upcoming weekly/biweekly from LeetCode)
+- Contests calendar: LeetCode + CodeChef + Codeforces aggregated into a Sunday-first month grid in the user's timezone (agenda list on mobile), with add-to-calendar and .ics export per contest
 - Dashboard per-day progress line chart (1W/2W/1M/3M)
 - Overview Dashboard separated from Problems browser (`/problems`)
 - Document Spaces (CRUD, sidebar entry tree, preview/edit, shared markdown editor)
@@ -33,6 +33,7 @@
 - Spaces + auth polish: denser space rows, sidebar hierarchy, document reading width/typography/outline, login/register consistency + password reveal
 - Settings page: notification email + daily challenge opt-in + Send test email (SMTP or console)
 - Shared question of the day: one problem per server-local date, emailed only to opted-in users, shown on every dashboard
+- Dashboard difficulty donut (Easy/Medium/Hard counts + overall fill) and streak calendar (target = attempted, flame = solved, current/best streak)
 
 ## Left / nice-to-have
 - Soft delete / richer account settings

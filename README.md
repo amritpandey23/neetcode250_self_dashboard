@@ -10,6 +10,7 @@ Personal Flask dashboard to track NeetCode 250 progress, status, and notes. Data
 - Notes per problem
 - Filters: search, category, difficulty, status
 - Progress summary and category bars
+- Contests calendar (LeetCode + CodeChef) with add-to-calendar and .ics export
 - **Spaces**: long-form private documents (categories → sections → markdown entries with LaTeX, Mermaid, code highlighting, YouTube embeds)
 
 ## Setup
