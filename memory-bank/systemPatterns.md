@@ -39,5 +39,6 @@
 - Question of the day is one `DailyChallenge` row per server-local date; emails and the dashboard both read it
 - Contest sources cached per platform (1h TTL), normalized to a common shape (`platform`, `start`, `end`, `url`, `calendar`); a source failure degrades gracefully
 - Contest calendar is built server-side (Sunday-first weeks + flat agenda); dates/times are displayed in the user's `email_challenge_timezone` (`user_timezone()`), defaulting to UTC
-- Dashboard uses a 75% main column + 25% right rail: difficulty donut + progress chart on the left, streak calendar + contest mini-calendar stacked in the rail
+- Dashboard uses a 75% main column + 25% right rail: progress chart + activity lists on the left, contest mini-calendar in the rail
+- The top hero is a 3-column grid: NeetCode 250 progress + merged Easy/Medium/Hard donut (left), streak calendar (middle), continue-learning card (right); it stacks to a single column below 900px
 - Streak data is derived from `Progress` (`completed_at`, `last_practiced_at`, `updated_at`) plus `ActivityLog` status/practice rows; solved days win over attempted days, and both count toward current/best streaks

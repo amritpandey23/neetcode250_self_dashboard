@@ -3,26 +3,96 @@
 {% block title %}Dashboard · NeetCode 250{% endblock %}
 {% block content %}
 <section class="overview-page">
-  <section class="dash-hero">
+  <section class="dash-hero dashboard-hero">
     <div class="hero-copy">
-      <p class="section-label">Progress</p>
-      <h1>NeetCode 250</h1>
-      <p class="hero-progress-text">
-        <strong>{{ stats.solved }}</strong> / {{ stats.total }} problems solved
-        <span class="muted">· {{ stats.percent }}% complete</span>
-      </p>
-      <div class="hero-bar" aria-hidden="true">
-        <div class="hero-bar-fill" style="width: {{ stats.percent }}%"></div>
+      <div class="hero-head">
+        <div>
+          <p class="section-label">Progress</p>
+          <h1>NeetCode 250</h1>
+          <p class="hero-progress-text">
+            <strong>{{ stats.solved }}</strong> / {{ stats.total }} problems solved
+            <span class="muted">· {{ stats.percent }}% complete</span>
+          </p>
+        </div>
+        <div class="overview-actions">
+          <a class="btn btn-primary btn-icon" href="{{ url_for('main.problems') }}">
+            {{ icon('list') }}<span>Browse problems</span>
+          </a>
+          <a class="btn btn-ghost btn-icon" href="{{ url_for('main.roadmap') }}">
+            {{ icon('route') }}<span>Roadmap</span>
+          </a>
+        </div>
       </div>
-      <div class="overview-actions">
-        <a class="btn btn-primary btn-icon" href="{{ url_for('main.problems') }}">
-          {{ icon('list') }}<span>Browse problems</span>
-        </a>
-        <a class="btn btn-ghost btn-icon" href="{{ url_for('main.roadmap') }}">
-          {{ icon('route') }}<span>Roadmap</span>
-        </a>
+
+      <div class="hero-difficulty-body">
+        <div
+          class="difficulty-ring"
+          style="--ring-fill: {{ difficulty_progress.style }};"
+          role="img"
+          aria-label="{{ difficulty_progress.solved }} of {{ difficulty_progress.total }} problems solved: {% for segment in difficulty_progress.segments %}{{ segment.label }} {{ segment.done }} of {{ segment.total }}{% if not loop.last %}, {% endif %}{% endfor %}"
+        >
+          <span class="difficulty-ring-inner">
+            <strong>{{ difficulty_progress.percent }}%</strong>
+            <span>solved</span>
+          </span>
+        </div>
+        <ul class="difficulty-legend">
+          {% for segment in difficulty_progress.segments %}
+          <li class="difficulty-row diff-{{ segment.key }}">
+            <span class="difficulty-dot" aria-hidden="true"></span>
+            <span class="difficulty-label">{{ segment.label }}</span>
+            <span class="difficulty-count"><strong>{{ segment.done }}</strong> / {{ segment.total }}</span>
+            <span class="difficulty-pct">{{ segment.percent }}%</span>
+          </li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
+
+    <section class="widget-card streak-widget hero-streak" aria-labelledby="streak-widget-title">
+      <header class="widget-head">
+        <div>
+          <p class="section-label" id="streak-widget-title">Streak</p>
+          <p class="aging-preview-sub muted">Solve one problem a day to keep your streak</p>
+        </div>
+        <span class="streak-total" aria-label="Current streak: {{ streak.current }} day{% if streak.current != 1 %}s{% endif %}">
+          <span class="streak-flame" aria-hidden="true">{{ icon('flame') }}</span>
+          <strong>{{ streak.current }}</strong>
+          <span>day{% if streak.current != 1 %}s{% endif %}</span>
+        </span>
+      </header>
+      <div class="streak-body">
+        <div class="streak-month">
+          <span>{{ streak.month_label }}</span>
+          <span class="muted">Best {{ streak.best }} day{% if streak.best != 1 %}s{% endif %}</span>
+        </div>
+        <div class="streak-grid" role="group" aria-label="Activity in {{ streak.month_label }}">
+          {% for label in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] %}
+          <span class="streak-dow" aria-hidden="true">{{ label }}</span>
+          {% endfor %}
+          {% for week in streak.weeks %}
+          {% for day in week %}
+          <div
+            class="streak-day{% if not day.in_month %} is-outside{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.status %} status-{{ day.status }}{% endif %}"
+            title="{{ day.date.strftime('%a, %b %d') }}{% if day.status == 'solved' %} · solved{% elif day.status == 'attempted' %} · attempted{% endif %}"
+          >
+            <span class="streak-num">{{ day.date.day }}</span>
+            {% if day.status %}
+            <span class="streak-mark" aria-label="{{ 'Solved' if day.status == 'solved' else 'Attempted' }}">
+              {{ icon('flame' if day.status == 'solved' else 'target') }}
+            </span>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% endfor %}
+        </div>
+        <div class="streak-legend" aria-hidden="true">
+          <span class="streak-key streak-key-attempted">{{ icon('target') }}<span>Attempted</span></span>
+          <span class="streak-key streak-key-solved">{{ icon('flame') }}<span>Solved</span></span>
+        </div>
+      </div>
+    </section>
+
     {% if continue_learning %}
     <aside class="continue-card">
       <p class="section-label">Continue learning</p>
@@ -73,39 +143,6 @@
   {% set show_contests = contest_preview and contest_preview.all %}
   <div class="dash-board">
     <div class="dash-board-main">
-      <div class="dash-widgets">
-    <section class="widget-card difficulty-widget" aria-labelledby="difficulty-widget-title">
-      <header class="widget-head">
-        <div>
-          <p class="section-label" id="difficulty-widget-title">Difficulty progress</p>
-          <p class="aging-preview-sub muted">Easy, Medium and Hard across all categories</p>
-        </div>
-        <span class="widget-badge">{{ difficulty_progress.solved }} / {{ difficulty_progress.total }}</span>
-      </header>
-      <div class="difficulty-body">
-        <div
-          class="difficulty-ring"
-          style="--ring-fill: {{ difficulty_progress.style }};"
-          role="img"
-          aria-label="{{ difficulty_progress.solved }} of {{ difficulty_progress.total }} problems solved: {% for segment in difficulty_progress.segments %}{{ segment.label }} {{ segment.done }} of {{ segment.total }}{% if not loop.last %}, {% endif %}{% endfor %}"
-        >
-          <span class="difficulty-ring-inner">
-            <strong>{{ difficulty_progress.percent }}%</strong>
-            <span>solved</span>
-          </span>
-        </div>
-        <ul class="difficulty-legend">
-          {% for segment in difficulty_progress.segments %}
-          <li class="difficulty-row diff-{{ segment.key }}">
-            <span class="difficulty-dot" aria-hidden="true"></span>
-            <span class="difficulty-label">{{ segment.label }}</span>
-            <span class="difficulty-count"><strong>{{ segment.done }}</strong> / {{ segment.total }}</span>
-            <span class="difficulty-pct">{{ segment.percent }}%</span>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </section>
       {% if progress_timeline %}
       <section class="progress-chart-card" aria-labelledby="progress-chart-title">
       <header class="progress-chart-head">
@@ -142,56 +179,9 @@
     </section>
     {% endif %}
 
-
-      </div>
     </div>
 
     <aside class="dash-board-rail">
-    <section class="widget-card streak-widget" aria-labelledby="streak-widget-title">
-      <header class="widget-head">
-        <div>
-          <p class="section-label" id="streak-widget-title">Streak</p>
-          <p class="aging-preview-sub muted">Solve one problem a day to keep your streak</p>
-        </div>
-        <span class="streak-total" aria-label="Current streak: {{ streak.current }} day{% if streak.current != 1 %}s{% endif %}">
-          <span class="streak-flame" aria-hidden="true">{{ icon('flame') }}</span>
-          <strong>{{ streak.current }}</strong>
-          <span>day{% if streak.current != 1 %}s{% endif %}</span>
-        </span>
-      </header>
-      <div class="streak-body">
-        <div class="streak-month">
-          <span>{{ streak.month_label }}</span>
-          <span class="muted">Best {{ streak.best }} day{% if streak.best != 1 %}s{% endif %}</span>
-        </div>
-        <div class="streak-grid" role="group" aria-label="Activity in {{ streak.month_label }}">
-          {% for label in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] %}
-          <span class="streak-dow" aria-hidden="true">{{ label }}</span>
-          {% endfor %}
-          {% for week in streak.weeks %}
-          {% for day in week %}
-          <div
-            class="streak-day{% if not day.in_month %} is-outside{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.status %} status-{{ day.status }}{% endif %}"
-            title="{{ day.date.strftime('%a, %b %d') }}{% if day.status == 'solved' %} · solved{% elif day.status == 'attempted' %} · attempted{% endif %}"
-          >
-            <span class="streak-num">{{ day.date.day }}</span>
-            {% if day.status %}
-            <span class="streak-mark" aria-label="{{ 'Solved' if day.status == 'solved' else 'Attempted' }}">
-              {{ icon('flame' if day.status == 'solved' else 'target') }}
-            </span>
-            {% endif %}
-          </div>
-          {% endfor %}
-          {% endfor %}
-        </div>
-        <div class="streak-legend" aria-hidden="true">
-          <span class="streak-key streak-key-attempted">{{ icon('target') }}<span>Attempted</span></span>
-          <span class="streak-key streak-key-solved">{{ icon('flame') }}<span>Solved</span></span>
-        </div>
-      </div>
-    </section>
-
-
     {% if show_contests %}
     <section class="contest-preview" aria-labelledby="contest-preview-title">
       <header class="aging-preview-head">
