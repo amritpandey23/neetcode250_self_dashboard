@@ -20,6 +20,7 @@
 - Reset progress to clean slate (keeps bookmark)
 - List: LeetCode beside name; status as icons
 - Contests calendar: LeetCode + CodeChef + Codeforces aggregated into a Sunday-first month grid in the user's timezone (agenda list on mobile), with add-to-calendar and .ics export per contest
+- Contests happening today listed in a table above the calendar (start, duration, live/upcoming, platform)
 - Dashboard per-day progress line chart (1W/2W/1M/3M)
 - Overview Dashboard separated from Problems browser (`/problems`)
 - Document Spaces (CRUD, sidebar entry tree, preview/edit, shared markdown editor)

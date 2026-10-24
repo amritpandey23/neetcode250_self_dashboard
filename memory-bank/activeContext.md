@@ -1,9 +1,11 @@
 # Active Context
 
 ## Current focus
-Shared question of the day: one problem for every user, emailed only to opted-in accounts, and shown on the dashboard for everyone.
+Contest page: contests overlapping the user's local today are listed in a table above the month calendar.
 
 ## Recent decisions
+- A contest is "happening today" when its start–end window overlaps the user's local calendar day, including contests that started earlier and are still running
+- The table is hidden when nothing overlaps today, and it stays visible when the calendar is on another month
 - `DailyChallenge` stores one problem per server-local date; `question_of_the_day()` creates it once and reuses it
 - Opted-in users still receive it at their own local send time; the problem is no longer a per-user unsolved pick
 - Dashboard shows that problem (with the viewer’s own status) whether or not email is enabled

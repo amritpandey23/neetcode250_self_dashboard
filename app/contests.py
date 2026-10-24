@@ -16,7 +16,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 try:
     import certifi
@@ -145,6 +145,15 @@ def find_contest(slug: str):
     return None
 
 
+def _duration_label(minutes: int) -> str:
+    hours, mins = divmod(max(minutes, 0), 60)
+    if hours and mins:
+        return f"{hours}h {mins}m"
+    if hours:
+        return f"{hours}h"
+    return f"{mins}m"
+
+
 def _relative_label(start: datetime, now: datetime) -> str:
     delta = start - now
     if delta.total_seconds() <= 0:
@@ -176,6 +185,7 @@ def _base_contest(
     tz,
 ) -> dict:
     start_local = start.astimezone(tz)
+    duration_minutes = int((end - start).total_seconds()) // 60
     contest = {
         "title": title,
         "slug": slug,
@@ -188,7 +198,8 @@ def _base_contest(
         "end": end,
         "start_local": start_local,
         "local_date": start_local.date(),
-        "duration_minutes": int((end - start).total_seconds()) // 60,
+        "duration_minutes": duration_minutes,
+        "duration_label": _duration_label(duration_minutes),
         "start_display": start_local.strftime("%a, %b %d · %H:%M %Z"),
         "start_time": start_local.strftime("%H:%M"),
         "relative": _relative_label(start, now),
@@ -513,6 +524,25 @@ def get_upcoming_contests(
         "stale": bool(errors),
         "timezone": str(zone),
     }
+
+
+def contests_happening_on(contests: list[dict], on: date, tz=None) -> list[dict]:
+    """Contests whose window overlaps the local calendar day ``on``.
+
+    Includes contests that start later that day and ones already underway
+    that began on an earlier day.
+    """
+    zone = tz or timezone.utc
+    day_start = datetime.combine(on, time.min, tzinfo=zone)
+    day_end = day_start + timedelta(days=1)
+    happening = [
+        contest
+        for contest in contests
+        if contest["start"].astimezone(zone) < day_end
+        and contest["end"].astimezone(zone) > day_start
+    ]
+    happening.sort(key=lambda contest: contest["start"])
+    return happening
 
 
 def build_month_calendar(contests: list[dict], year: int, month: int, tz=None) -> dict:

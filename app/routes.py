@@ -755,7 +755,11 @@ def aging():
 @main_bp.route("/contests")
 @login_required
 def contests():
-    from app.contests import build_month_calendar, get_upcoming_contests
+    from app.contests import (
+        build_month_calendar,
+        contests_happening_on,
+        get_upcoming_contests,
+    )
 
     force = request.args.get("refresh") == "1"
     user_tz = user_timezone(current_user)
@@ -787,6 +791,9 @@ def contests():
         "contests.html",
         schedule=schedule,
         calendar=build_month_calendar(schedule["all"], year, month, tz=user_tz),
+        today_contests=contests_happening_on(schedule["all"], today, tz=user_tz),
+        today=today,
+        today_label=today.strftime("%A, %b %-d"),
         month_label=first_of_month.strftime("%B %Y"),
         month_param=f"{year:04d}-{month:02d}",
         prev_month=prev_month,

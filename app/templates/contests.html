@@ -43,6 +43,63 @@
 </p>
 {% endif %}
 
+{% if today_contests %}
+<section class="today-contests" aria-labelledby="today-contests-title">
+  <header class="today-contests-head">
+    <h2 id="today-contests-title">{{ icon('calendar-clock') }} Happening today</h2>
+    <span class="muted">{{ today_label }} · {{ timezone_name }}</span>
+  </header>
+  <div class="today-contests-wrap">
+    <table class="today-contests-table">
+      <thead>
+        <tr>
+          <th>Contest</th>
+          <th>Platform</th>
+          <th>Starts</th>
+          <th>Duration</th>
+          <th>Status</th>
+          <th class="col-cal"><span class="sr-only">Calendar</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for contest in today_contests %}
+        <tr{% if contest.is_live %} class="is-live"{% endif %}>
+          <td>
+            <div class="today-contest-title">
+              <a href="{{ contest.url }}" target="_blank" rel="noopener">{{ contest.title }}</a>
+              <span class="today-contest-kind">{{ contest.kind_label }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="today-contest-platform platform-{{ contest.platform_key }}">
+              <span class="cal-dot" aria-hidden="true"></span>
+              {{ contest.platform }}
+            </span>
+          </td>
+          <td class="col-when">
+            {% if contest.local_date == today %}
+            {{ contest.start_time }}
+            {% else %}
+            {{ contest.start_local.strftime('%b %d') }} · {{ contest.start_time }}
+            {% endif %}
+          </td>
+          <td class="col-duration">{{ contest.duration_label }}</td>
+          <td class="col-status">
+            {% if contest.is_live %}
+            <span class="today-live">Live</span>
+            {% else %}
+            {{ contest.relative }}
+            {% endif %}
+          </td>
+          <td class="col-cal">{{ contest_calendar_menu(contest, true) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
 <section class="contest-calendar-panel" aria-labelledby="contest-month-title">
   <header class="cal-toolbar">
     <div class="cal-nav">

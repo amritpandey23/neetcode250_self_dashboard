@@ -2159,6 +2159,135 @@ textarea:focus {
   color: var(--muted);
 }
 
+/* ---------- Today's contests ---------- */
+.today-contests {
+  margin-bottom: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.today-contests-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.today-contests-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.today-contests-head h2 .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--accent-deep);
+}
+
+.today-contests-head .muted { font-size: 12.5px; }
+
+.today-contests-wrap { overflow-x: auto; }
+
+.today-contests-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.today-contests-table th,
+.today-contests-table td {
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  font-size: 14px;
+}
+
+.today-contests-table th {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--surface-2);
+}
+
+.today-contests-table tbody tr:last-child td { border-bottom: 0; }
+.today-contests-table tbody tr:hover { background: var(--accent-soft-2); }
+.today-contests-table tbody tr.is-live { background: var(--accent-soft); }
+
+.today-contest-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.today-contest-title a {
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.today-contest-title a:hover { color: var(--accent-deep); }
+
+.today-contest-kind {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.today-contest-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.today-contests .col-when,
+.today-contests .col-duration,
+.today-contests .col-status {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.today-contests .col-cal {
+  width: 48px;
+  text-align: right;
+}
+
+.today-contests .cal-menu-panel {
+  position: static;
+  margin-top: 0.35rem;
+  box-shadow: none;
+}
+
+.today-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+
+.today-live::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-deep);
+}
+
 /* ---------- Contest calendar ---------- */
 .contest-calendar-panel {
   position: relative;
