@@ -3600,11 +3600,138 @@ body:has(.problem-shell) .site-main {
   align-items: center;
 }
 
-.linked-docs-form select {
+/* ---------- Searchable select ---------- */
+.search-select {
+  position: relative;
   flex: 1 1 220px;
   min-width: 0;
-  max-width: 100%;
 }
+
+.search-select-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+}
+
+.search-select-control:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft-2);
+}
+
+.search-select.is-invalid .search-select-control {
+  border-color: var(--danger);
+}
+
+.search-select-icon {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+}
+
+.search-select-input[type="text"] {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  appearance: none;
+}
+
+.search-select-input[type="text"]:focus {
+  border: 0;
+}
+
+.search-select-input[type="text"]:focus-visible {
+  outline: none;
+}
+
+.search-select-chevron {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--muted);
+  transition: transform var(--ease-fast);
+}
+
+.search-select.is-open .search-select-chevron {
+  transform: rotate(180deg);
+}
+
+.search-select-options {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.search-select-options[hidden] { display: none; }
+
+.search-select-option {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.search-select-option[hidden] { display: none; }
+
+.search-select-option:hover,
+.search-select-option.is-active {
+  background: var(--hover);
+}
+
+.search-select-option[aria-selected="true"] {
+  background: var(--accent-soft-2);
+}
+
+.search-select-option[aria-selected="true"] .search-select-option-title {
+  color: var(--accent-deep);
+}
+
+.search-select-option-title {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-select-option-path {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-select-empty {
+  padding: 0.55rem;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.search-select-empty[hidden] { display: none; }
 
 .notes-field-head {
   display: flex;

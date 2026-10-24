@@ -233,13 +233,44 @@
       action="{{ url_for('main.link_problem_entry', slug=problem.slug) }}"
     >
       <input type="hidden" name="next" value="{{ url_for('main.problem_detail', slug=problem.slug, next=back_url) }}">
-      <label class="sr-only" for="link-entry-select">Choose a Spaces entry</label>
-      <select name="entry_id" id="link-entry-select" required>
-        <option value="" disabled selected>Select a Spaces entry…</option>
-        {% for opt in entry_options %}
-        <option value="{{ opt.id }}">{{ opt.label }}</option>
-        {% endfor %}
-      </select>
+      <label class="sr-only" for="link-entry-search">Search Spaces entries</label>
+      <div class="search-select" data-search-select>
+        <input type="hidden" name="entry_id" data-search-select-value value="">
+        <div class="search-select-control">
+          {{ icon('search', 'search-select-icon') }}
+          <input
+            type="text"
+            id="link-entry-search"
+            class="search-select-input"
+            placeholder="Search Spaces entries…"
+            autocomplete="off"
+            spellcheck="false"
+            role="combobox"
+            aria-expanded="false"
+            aria-controls="link-entry-options"
+            aria-autocomplete="list"
+            data-search-select-input
+          >
+          <span class="search-select-chevron" aria-hidden="true">{{ icon('chevron-down') }}</span>
+        </div>
+        <ul class="search-select-options" id="link-entry-options" role="listbox" aria-label="Spaces entries" data-search-select-options hidden>
+          {% for opt in entry_options %}
+          <li
+            class="search-select-option"
+            id="link-entry-option-{{ opt.id }}"
+            role="option"
+            aria-selected="false"
+            data-search-select-option
+            data-value="{{ opt.id }}"
+            data-label="{{ opt.label }}"
+          >
+            <span class="search-select-option-title">{{ opt.entry.title }}</span>
+            <span class="search-select-option-path">{{ opt.space.name }} / {{ opt.category.name }}{% if opt.entry.section %} / {{ opt.entry.section.name }}{% endif %}</span>
+          </li>
+          {% endfor %}
+          <li class="search-select-empty" data-search-select-empty hidden>No matching entries</li>
+        </ul>
+      </div>
       <button class="btn btn-primary btn-icon" type="submit">
         {{ icon('link') }}<span>Link entry</span>
       </button>
@@ -416,6 +447,7 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
 <script src="{{ url_for('static', filename='js/markdown-editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/search-select.js') }}"></script>
 <script src="{{ url_for('static', filename='js/problem-detail.js') }}"></script>
 <script src="{{ url_for('static', filename='js/ai-chat.js') }}"></script>
 {% endblock %}
